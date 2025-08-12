@@ -3,40 +3,22 @@ import { Owner } from "@/models/ownerModel";
 import bcryptjs from "bcryptjs";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
+
 export const authOptions = {
   pages: {
     signIn: "/login",
   },
-  // Configure one or more authentication providers
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        username: {
-          label: "Email",
-          type: "email",
-          placeholder: "Enter your email",
-        },
-        password: {
-          label: "Password",
-          type: "password",
-          placeholder: "Enter your Password",
-        },
+        username: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
-      async authorize(credentials, req) {
-        // Add logic here to look up the user from the credentials supplied
-        connect();
-        const user = await Owner.findOne({ email: credentials?.email });
-
-        if (user) {
-          // Any object returned will be saved in `user` property of the JWT
-          return user;
-        } else {
-          // If you return null then an error will be displayed advising the user to check their details.
-          return null;
-
-          // You can also Reject this callback with an Error thus the user will be sent to the error page with the error message as a query parameter
-        }
+      async authorize(credentials) {
+        await connect(); // ✅ ensure DB connection before query
+        const user = await Owner.findOne({ email: credentials?.username });
+        return user || null;
       },
     }),
     GoogleProvider({
@@ -45,28 +27,29 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile, email, credentials }) {
+    async signIn({ user, account, profile }) {
       try {
-        // Check if the login is through Google
-        if (account.provider === "google") {
-          const userExist = await Owner.findOne({ email: profile.email });
-          if (!userExist) {
-            const password = Math.floor(1000 + Math.random() * 9000);
-            const updatepassword = password.toString();
-            const salt = await bcryptjs.genSalt(10);
-            const hashedPassword = await bcryptjs.hash(updatepassword, salt);
+        await connect(); // ✅ ensure DB connection before query
 
-            const newUser = await Owner.create({
+        if (account.provider === "google") {
+          let userExist = await Owner.findOne({ email: profile.email });
+
+          if (!userExist) {
+            const randomPassword = Math.floor(
+              1000 + Math.random() * 9000
+            ).toString();
+            const hashedPassword = await bcryptjs.hash(randomPassword, 10);
+
+            await Owner.create({
               username: profile.name,
               email: profile.email,
               password: hashedPassword,
-              isVerfied: true,
             });
           }
         }
         return true;
       } catch (error) {
-        console.log(error);
+        console.error("Sign-in error:", error);
         return false;
       }
     },

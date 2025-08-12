@@ -1,43 +1,30 @@
+// models/dbConfig.js
 import mongoose from "mongoose";
-let isConnected;
+
+let isConnected = false;
+
 export async function connect() {
-  if (isConnected) {
-    return;
-  }
+  if (isConnected) return;
+
   try {
     const { user, password } = process.env;
-
     if (!user || !password) {
       throw new Error(
-        "User and password must be defined in environment variables."
+        "MongoDB user and password must be defined in env variables."
       );
     }
 
     const connectionStr = `mongodb+srv://${user}:${password}@cluster0.3f7rq.mongodb.net/parkingDB?retryWrites=true&w=majority&appName=Cluster0`;
 
-    await mongoose.connect(connectionStr);
-    isConnected = true;
-    const connection = mongoose.connection;
-
-    connection.on("connected", () => {
-      console.log("MongoDB connected successfully");
+    const db = await mongoose.connect(connectionStr, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
     });
 
-    connection.on("error", (err) => {
-      console.error("MongoDB connection error:", err);
-      process.exit(1); // Exit with failure
-    });
-
-    connection.on("disconnected", () => {
-      console.warn("MongoDB disconnected");
-    });
-
-    connection.on("reconnected", () => {
-      console.log("MongoDB reconnected");
-    });
+    isConnected = db.connections[0].readyState === 1;
+    console.log("✅ MongoDB connected successfully");
   } catch (error) {
-    console.error("Something went wrong while connecting to MongoDB:", error);
-    isConnected = false;
-    process.exit(1); // Exit with failure
+    console.error("❌ MongoDB connection error:", error);
+    throw error;
   }
 }
