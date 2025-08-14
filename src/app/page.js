@@ -1,38 +1,17 @@
-"use client";
+import ParkingBanner from "@/components/frontpage/Banner";
+import ParkingProcess from "@/components/frontpage/Procees";
+import Testimonials from "@/components/frontpage/Testimonial";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
-
-export default function GoogleLoginButton() {
-  const [loading, setLoading] = useState(false);
-
+export default function Home() {
   return (
     <div
-      style={{ display: "flex", justifyContent: "center", marginTop: "50px" }}
+      style={{
+        margin: -20,
+      }}
     >
-      <button
-        onClick={() => signIn("google")}
-        disabled={loading}
-        style={{
-          backgroundColor: "#4285F4",
-          color: "#fff",
-          border: "none",
-          padding: "10px 20px",
-          borderRadius: "5px",
-          cursor: loading ? "not-allowed" : "pointer",
-          fontSize: "16px",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-        }}
-      >
-        <img
-          src="https://www.svgrepo.com/show/475656/google-color.svg"
-          alt="Google logo"
-          style={{ width: "20px", height: "20px" }}
-        />
-        {loading ? "Signing in..." : "Sign in with Google"}
-      </button>
+      <ParkingBanner />
+      <ParkingProcess />
+      <Testimonials />
     </div>
   );
 }

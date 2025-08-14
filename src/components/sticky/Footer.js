@@ -74,13 +74,13 @@ export default function Footer() {
               </Typography>
               <Stack spacing={0.5}>
                 <Link color="text.secondary" href="#" underline="hover">
-                  Find Parking
+                  Subscription Plans
                 </Link>
                 <Link color="text.secondary" href="#" underline="hover">
-                  Reservations
+                  Parking History
                 </Link>
                 <Link color="text.secondary" href="#" underline="hover">
-                  Pricing
+                  Offers & Discounts
                 </Link>
                 <Link color="text.secondary" href="#" underline="hover">
                   FAQs
@@ -97,7 +97,7 @@ export default function Footer() {
                   Manage Spot
                 </Link>
                 <Link color="text.secondary" href="#" underline="hover">
-                  Earnings
+                  Customer Support
                 </Link>
                 <Link color="text.secondary" href="#" underline="hover">
                   Analytics
