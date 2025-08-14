@@ -3,7 +3,7 @@ import {
   Box,
   Container,
   IconButton,
-  Link,
+  Link as MuiLink,
   Stack,
   Typography,
 } from "@mui/material";
@@ -11,14 +11,15 @@ import FacebookIcon from "@mui/icons-material/Facebook";
 import LinkedInIcon from "@mui/icons-material/LinkedIn";
 import TwitterIcon from "@mui/icons-material/Twitter";
 import Image from "next/image";
+import Link from "next/link"; // ✅ For homepage redirect
 
 function Copyright() {
   return (
     <Typography variant="body2" color="text.secondary" mt={1}>
       {"Quickparko © "}
-      <Link href="https://Quickparko.com/" color="inherit" underline="hover">
+      <MuiLink href="https://quickparko.com/" color="inherit" underline="hover">
         Quickparko
-      </Link>{" "}
+      </MuiLink>{" "}
       {new Date().getFullYear()}
     </Typography>
   );
@@ -42,14 +43,18 @@ export default function Footer() {
           justifyContent="space-between"
           spacing={{ xs: 6, sm: 4 }}
         >
-          {/* Logo & Description */}
+          {/* ✅ Logo & Description (Clickable to homepage) */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Image
-              src="/logo.png"
-              alt="Quickparko Logo"
-              width={70}
-              height={50}
-            />
+            <Link href="/" passHref>
+              <Box sx={{ cursor: "pointer", display: "inline-block" }}>
+                <Image
+                  src="/logo.png"
+                  alt="Quickparko Logo"
+                  width={70}
+                  height={50}
+                />
+              </Box>
+            </Link>
             <Typography
               variant="body2"
               color="text.secondary"
@@ -61,70 +66,101 @@ export default function Footer() {
             </Typography>
           </Box>
 
-          {/* Links Sections */}
+          {/* ✅ Links Sections */}
           <Stack
             direction={{ xs: "row", sm: "row" }}
             spacing={{ xs: 4, sm: 6 }}
             flex={2}
             justifyContent="space-between"
           >
+            {/* Users */}
             <Box>
               <Typography variant="subtitle2" fontWeight={600} mb={1}>
                 Users
               </Typography>
               <Stack spacing={0.5}>
-                <Link color="text.secondary" href="#" underline="hover">
+                <MuiLink color="text.secondary" href="/plans" underline="hover">
                   Subscription Plans
-                </Link>
-                <Link color="text.secondary" href="#" underline="hover">
+                </MuiLink>
+                <MuiLink
+                  color="text.secondary"
+                  href="/history"
+                  underline="hover"
+                >
                   Parking History
-                </Link>
-                <Link color="text.secondary" href="#" underline="hover">
+                </MuiLink>
+                <MuiLink
+                  color="text.secondary"
+                  href="/offers"
+                  underline="hover"
+                >
                   Offers & Discounts
-                </Link>
-                <Link color="text.secondary" href="#" underline="hover">
+                </MuiLink>
+                <MuiLink color="text.secondary" href="/faqs" underline="hover">
                   FAQs
-                </Link>
+                </MuiLink>
               </Stack>
             </Box>
 
+            {/* Owners */}
             <Box>
               <Typography variant="subtitle2" fontWeight={600} mb={1}>
                 Owners
               </Typography>
               <Stack spacing={0.5}>
-                <Link color="text.secondary" href="#" underline="hover">
+                <MuiLink
+                  color="text.secondary"
+                  href="/manage-spot"
+                  underline="hover"
+                >
                   Manage Spot
-                </Link>
-                <Link color="text.secondary" href="#" underline="hover">
+                </MuiLink>
+                <MuiLink
+                  color="text.secondary"
+                  href="/support"
+                  underline="hover"
+                >
                   Customer Support
-                </Link>
-                <Link color="text.secondary" href="#" underline="hover">
+                </MuiLink>
+                <MuiLink
+                  color="text.secondary"
+                  href="/analytics"
+                  underline="hover"
+                >
                   Analytics
-                </Link>
+                </MuiLink>
               </Stack>
             </Box>
 
+            {/* Legal */}
             <Box>
               <Typography variant="subtitle2" fontWeight={600} mb={1}>
                 Legal
               </Typography>
               <Stack spacing={0.5}>
-                <Link color="text.secondary" href="#" underline="hover">
+                <MuiLink color="text.secondary" href="/terms" underline="hover">
                   Terms
-                </Link>
-                <Link color="text.secondary" href="#" underline="hover">
+                </MuiLink>
+                <MuiLink
+                  color="text.secondary"
+                  href="/privacy"
+                  underline="hover"
+                >
                   Privacy
-                </Link>
-                <Link color="text.secondary" href="#" underline="hover">
+                </MuiLink>
+                <MuiLink
+                  color="text.secondary"
+                  href="/contact"
+                  underline="hover"
+                >
                   Contact
-                </Link>
+                </MuiLink>
               </Stack>
             </Box>
           </Stack>
         </Stack>
 
-        {/* Bottom Footer */}
+        {/* ✅ Bottom Footer */}
         <Stack
           direction={{ xs: "column", sm: "row" }}
           justifyContent="space-between"
@@ -139,6 +175,7 @@ export default function Footer() {
               color="inherit"
               aria-label="Facebook"
               href="https://facebook.com/quickparko"
+              target="_blank"
             >
               <FacebookIcon fontSize="small" />
             </IconButton>
@@ -146,6 +183,7 @@ export default function Footer() {
               color="inherit"
               aria-label="Twitter"
               href="https://twitter.com/quickparko"
+              target="_blank"
             >
               <TwitterIcon fontSize="small" />
             </IconButton>
@@ -153,6 +191,7 @@ export default function Footer() {
               color="inherit"
               aria-label="LinkedIn"
               href="https://www.linkedin.com/company/quickparko/"
+              target="_blank"
             >
               <LinkedInIcon fontSize="small" />
             </IconButton>

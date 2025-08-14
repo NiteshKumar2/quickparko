@@ -12,16 +12,14 @@ import MenuItem from "@mui/material/MenuItem";
 import Container from "@mui/material/Container";
 import Button from "@mui/material/Button";
 import Image from "next/image";
+import Link from "next/link";
 
-// ✅ Import NextAuth hooks
 import { useSession, signIn, signOut } from "next-auth/react";
 
 const settings = ["Profile", "Account", "Dashboard", "Logout"];
 
 function Navbar() {
   const [anchorElUser, setAnchorElUser] = React.useState(null);
-
-  // ✅ Get user session from NextAuth
   const { data: session } = useSession();
   const user = session?.user;
 
@@ -40,16 +38,27 @@ function Navbar() {
     >
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          {/* Logo */}
-          <Image src="/logo.png" alt="Quickparko Logo" width={55} height={45} />
+          {/* ✅ Logo now redirects to homepage */}
+          <Link href="/" passHref>
+            <Box
+              sx={{ cursor: "pointer", display: "flex", alignItems: "center" }}
+            >
+              <Image
+                src="/logo.png"
+                alt="Quickparko Logo"
+                width={55}
+                height={45}
+                priority
+              />
+            </Box>
+          </Link>
 
           {/* Push rest to the right */}
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* If not logged in → Show Login/Signup */}
           {!user ? (
             <Button
-              onClick={() => signIn("google")} // Google login
+              onClick={() => signIn("google")}
               variant="contained"
               sx={{
                 backgroundColor: "#FF6F00",
@@ -59,7 +68,6 @@ function Navbar() {
               Log In / Sign Up
             </Button>
           ) : (
-            /* If logged in → Show avatar menu */
             <Box sx={{ flexGrow: 0 }}>
               <Tooltip title="Open settings">
                 <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
@@ -72,15 +80,9 @@ function Navbar() {
                 sx={{ mt: "45px" }}
                 id="menu-appbar"
                 anchorEl={anchorElUser}
-                anchorOrigin={{
-                  vertical: "top",
-                  horizontal: "right",
-                }}
+                anchorOrigin={{ vertical: "top", horizontal: "right" }}
                 keepMounted
-                transformOrigin={{
-                  vertical: "top",
-                  horizontal: "right",
-                }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
                 open={Boolean(anchorElUser)}
                 onClose={handleCloseUserMenu}
               >

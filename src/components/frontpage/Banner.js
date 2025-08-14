@@ -2,17 +2,41 @@
 import { Box, Button, Container, TextField, Typography } from "@mui/material";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import axios from "axios";
 
 export default function ParkingBanner() {
   const [vehicleNumber, setVehicleNumber] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!vehicleNumber.trim()) {
       alert("Please enter your vehicle number!");
       return;
     }
-    // Add API call or logic to fetch car status
-    alert(`Searching status for: ${vehicleNumber}`);
+
+    setLoading(true);
+    try {
+      const res = await axios.get(
+        `/api/client/vehicle?vehicle=${vehicleNumber}`
+      );
+      const data = res.data;
+
+      if (data.success) {
+        // Redirect and send the data to the details page
+        router.push(
+          `/vehicledetails?data=${encodeURIComponent(JSON.stringify(data))}`
+        );
+      } else {
+        alert(data.message || "Vehicle not found");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Something went wrong while fetching data.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,9 +89,10 @@ export default function ParkingBanner() {
               variant="contained"
               color="primary"
               onClick={handleSearch}
+              disabled={loading}
               sx={{ px: 4, borderRadius: 2 }}
             >
-              Find Status
+              {loading ? "Searching..." : "Find Status"}
             </Button>
           </Box>
         </motion.div>
