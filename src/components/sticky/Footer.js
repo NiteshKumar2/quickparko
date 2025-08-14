@@ -15,9 +15,9 @@ import Image from "next/image";
 function Copyright() {
   return (
     <Typography variant="body2" color="text.secondary" mt={1}>
-      {"ParkEasy © "}
-      <Link href="https://parkeasy.com/" color="inherit" underline="hover">
-        ParkEasy
+      {"Quickparko © "}
+      <Link href="https://Quickparko.com/" color="inherit" underline="hover">
+        Quickparko
       </Link>{" "}
       {new Date().getFullYear()}
     </Typography>
@@ -46,8 +46,8 @@ export default function Footer() {
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Image
               src="/logo.png"
-              alt="ParkEasy Logo"
-              width={140}
+              alt="Quickparko Logo"
+              width={70}
               height={50}
             />
             <Typography
@@ -56,8 +56,8 @@ export default function Footer() {
               mt={2}
               sx={{ maxWidth: 260 }}
             >
-              ParkEasy helps you find and manage parking spots seamlessly for a
-              hassle-free experience.
+              Quickparko helps you find and manage parking spots seamlessly for
+              a hassle-free experience.
             </Typography>
           </Box>
 
@@ -138,21 +138,21 @@ export default function Footer() {
             <IconButton
               color="inherit"
               aria-label="Facebook"
-              href="https://facebook.com/parkeasy"
+              href="https://facebook.com/quickparko"
             >
               <FacebookIcon fontSize="small" />
             </IconButton>
             <IconButton
               color="inherit"
               aria-label="Twitter"
-              href="https://twitter.com/parkeasy"
+              href="https://twitter.com/quickparko"
             >
               <TwitterIcon fontSize="small" />
             </IconButton>
             <IconButton
               color="inherit"
               aria-label="LinkedIn"
-              href="https://www.linkedin.com/company/parkeasy/"
+              href="https://www.linkedin.com/company/quickparko/"
             >
               <LinkedInIcon fontSize="small" />
             </IconButton>
