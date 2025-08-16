@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Parking",
+  title: "QuickParko",
   description: "parking",
   icons: {
     icon: "/logo.png",
