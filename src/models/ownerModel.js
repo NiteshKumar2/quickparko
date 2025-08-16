@@ -40,7 +40,7 @@ const ownerSchema = new mongoose.Schema(
       trim: true,
     },
     dailyMonthly: {
-      type: String,
+      type: [String],
       enum: ["daily", "monthly"],
     },
     price: {

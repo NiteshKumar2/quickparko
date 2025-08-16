@@ -13,14 +13,15 @@ import Container from "@mui/material/Container";
 import Button from "@mui/material/Button";
 import Image from "next/image";
 import Link from "next/link";
-
 import { useSession, signIn, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
-const settings = ["Profile", "Account", "Dashboard", "Logout"];
+const settings = ["Profile", "Account", "Logout"];
 
 function Navbar() {
   const [anchorElUser, setAnchorElUser] = React.useState(null);
   const { data: session } = useSession();
+  const router = useRouter();
   const user = session?.user;
 
   const handleOpenUserMenu = (event) => setAnchorElUser(event.currentTarget);
@@ -58,7 +59,7 @@ function Navbar() {
 
           {!user ? (
             <Button
-              onClick={() => signIn("google")}
+              onClick={() => signIn("google", { callbackUrl: "/account" })}
               variant="contained"
               sx={{
                 backgroundColor: "#FF6F00",
@@ -91,7 +92,11 @@ function Navbar() {
                     key={setting}
                     onClick={() => {
                       if (setting === "Logout") {
-                        signOut();
+                        signOut({ callbackUrl: "/" });
+                      } else if (setting === "Account") {
+                        router.push("/account");
+                      } else if (setting === "Profile") {
+                        router.push("/profile");
                       }
                       handleCloseUserMenu();
                     }}
