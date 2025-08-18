@@ -1,36 +1,38 @@
 "use client";
 import React from "react";
-import Slider from "react-slick";
+import dynamic from "next/dynamic";
 import { Card, CardContent, Typography, Avatar, Box } from "@mui/material";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+
+// ✅ Load Slider only on client to avoid Next.js SSR issues
+const Slider = dynamic(() => import("react-slick"), { ssr: false });
 
 const testimonials = [
   {
     name: "John Doe",
     review:
-      " This parking app is amazing! Super easy to use and saves me so much time.",
+      "This parking app is amazing! Super easy to use and saves me so much time.",
     avatar: "https://i.pravatar.cc/150?img=1",
   },
   {
     name: "Jane Smith",
-    review: " Love the scanning feature! Makes entry and exit hassle-free.",
+    review: "Love the scanning feature! Makes entry and exit hassle-free.",
     avatar: "https://i.pravatar.cc/150?img=2",
   },
   {
     name: "Michael Lee",
-    review: " Very user-friendly and lightning fast. Highly recommended.",
+    review: "Very user-friendly and lightning fast. Highly recommended.",
     avatar: "https://i.pravatar.cc/150?img=3",
   },
   {
     name: "Sarah Kim",
-    review:
-      "Great app for parking owners! The record book feature is awesome.",
+    review: "Great app for parking owners! The record book feature is awesome.",
     avatar: "https://i.pravatar.cc/150?img=4",
   },
   {
     name: "David Chen",
-    review: " Lightweight, fast, and works perfectly every time.",
+    review: "Lightweight, fast, and works perfectly every time.",
     avatar: "https://i.pravatar.cc/150?img=5",
   },
 ];
@@ -54,7 +56,7 @@ export default function Testimonials() {
       sx={{
         px: { xs: 1, md: 40 },
         py: 8,
-        background: "linear-gradient(to right, #f3f6f7ff, #eef2f5ff)",
+        background: "linear-gradient(to right, #f3f6f7, #eef2f5)",
       }}
     >
       <Typography
@@ -63,7 +65,7 @@ export default function Testimonials() {
         gutterBottom
         sx={{ fontWeight: "bold", mb: 4, color: "#0d47a1" }}
       >
-         What Our Users Say
+        What Our Users Say
       </Typography>
 
       <Slider {...settings}>
@@ -81,6 +83,7 @@ export default function Testimonials() {
               <CardContent sx={{ textAlign: "center", p: 4 }}>
                 <Avatar
                   src={t.avatar}
+                  alt={t.name}
                   sx={{
                     width: 72,
                     height: 72,
