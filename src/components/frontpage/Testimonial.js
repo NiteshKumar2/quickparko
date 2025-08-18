@@ -97,7 +97,7 @@ export default function Testimonials() {
                   variant="body1"
                   sx={{ fontStyle: "italic", mb: 2, color: "#37474f" }}
                 >
-                  "{t.review}"
+                  {t.review}
                 </Typography>
                 <Typography
                   variant="subtitle1"
