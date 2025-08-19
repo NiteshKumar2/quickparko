@@ -18,31 +18,38 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import CloseIcon from "@mui/icons-material/Close";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import Tesseract from "tesseract.js";
+import axios from "axios";
+import { useSession } from "next-auth/react"; // ✅ get email from session
+import toast, { Toaster } from "react-hot-toast";
 
 export default function ParkingMain() {
-  const [mode, setMode] = useState("Daily"); // Daily or Monthly
-  const [openPopup, setOpenPopup] = useState(null); // "in", "out", or null
+  const { data: session } = useSession();
+  const userEmail = session?.user?.email || "";
+
+  const [mode, setMode] = useState("Daily");
+  const [searchResults, setSearchResults] = useState([]);
+  const [openPopup, setOpenPopup] = useState(null); // "in" | "out"
   const [vehicleNo, setVehicleNo] = useState("");
   const [tokenNo, setTokenNo] = useState("");
   const [cameraOpen, setCameraOpen] = useState(false);
-  const [formOpen, setFormOpen] = useState(false); // second popup for details
+  const [formOpen, setFormOpen] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
-  // ✅ Switch between Daily/Monthly
+  // ✅ Switch Daily/Monthly
   const handleSwitchChange = (e) => {
     setMode(e.target.checked ? "Monthly" : "Daily");
   };
 
-  // ✅ Open Vehicle IN
+  // ✅ Vehicle IN
   const handleOpenIn = async () => {
     setTokenNo(`TKN-${Math.floor(Math.random() * 10000)}`);
-    setVehicleNo(""); // reset
+    setVehicleNo("");
     setOpenPopup("in");
     await startCamera();
   };
 
-  // ✅ Open Vehicle OUT
+  // ✅ Vehicle OUT
   const handleOpenOut = () => {
     setVehicleNo("");
     setOpenPopup("out");
@@ -53,19 +60,75 @@ export default function ParkingMain() {
     setCameraOpen(false);
     setFormOpen(false);
   };
+  const handleExitVehicle = async (id) => {
+    try {
+      const res = await axios.put("/api/dailyclient", {
+        id,
+        status: "out", // directly request status change
+      });
 
-  // ✅ Submit form
-  const handleSubmit = () => {
-    console.log({
-      mode,
-      action: openPopup,
-      vehicleNo,
-      tokenNo,
-    });
-    handleClose();
+      if (res.data.success) {
+        toast.success("Vehicle marked OUT ✅");
+
+        // update UI
+        setSearchResults((prev) =>
+          prev.map((r) =>
+            r._id === id ? { ...r, status: "out", updatedAt: new Date() } : r
+          )
+        );
+
+        // close popup after success
+        setTimeout(() => {
+          handleClose();
+        }, 800);
+      } else {
+        toast.error(res.data.error || "Failed to mark vehicle OUT ❌");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.error || "Something went wrong ❌");
+    }
   };
 
-  // ✅ Start camera
+  // ✅ API Submit
+  // ✅ API Submit
+  const handleSubmit = async () => {
+    if (!userEmail) {
+      toast.error("Please login first");
+      return;
+    }
+
+    try {
+      if (openPopup === "in") {
+        await axios.post("/api/dailyclient", {
+          email: userEmail,
+          vehicle: vehicleNo,
+          token: tokenNo,
+          status: "in",
+        });
+        toast.success("Vehicle IN recorded ✅");
+        handleClose();
+      } else if (openPopup === "out") {
+        const res = await axios.post("/api/dailyclient/exitsearch", {
+          email: userEmail,
+          y: vehicleNo,
+        });
+
+        if (res.data.success) {
+          setSearchResults(res.data.data); // ✅ show in popup
+          toast.success(`${res.data.count} records found`);
+        } else {
+          setSearchResults([]);
+          toast.error(res.data.message || "No record found ❌");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.error || "Something went wrong");
+    }
+  };
+
+  // ✅ Camera
   const startCamera = async () => {
     setCameraOpen(true);
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -88,16 +151,15 @@ export default function ParkingMain() {
       data: { text },
     } = await Tesseract.recognize(canvas, "eng");
 
-    // Clean text (only keep alphanumeric like plate numbers)
     const plate = text.replace(/[^A-Z0-9]/gi, "").toUpperCase();
     setVehicleNo(plate || "");
     setCameraOpen(false);
-    setFormOpen(true); // ✅ move to second popup
+    setFormOpen(true);
   };
 
   return (
     <Box sx={{ textAlign: "center", mt: 15 }}>
-      {/* Switch */}
+      {/* Mode Switch */}
       <FormControlLabel
         control={
           <Switch
@@ -136,8 +198,6 @@ export default function ParkingMain() {
             px: 6,
             py: 2,
             borderRadius: "16px",
-            boxShadow: "0px 6px 12px rgba(0,0,0,0.2)",
-            "&:hover": { bgcolor: "#1b5e20" },
           }}
           onClick={handleOpenIn}
         >
@@ -154,8 +214,6 @@ export default function ParkingMain() {
             px: 6,
             py: 2,
             borderRadius: "16px",
-            boxShadow: "0px 6px 12px rgba(0,0,0,0.2)",
-            "&:hover": { bgcolor: "#8e0000" },
           }}
           onClick={handleOpenOut}
         >
@@ -163,7 +221,7 @@ export default function ParkingMain() {
         </Button>
       </Stack>
 
-      {/* Camera Popup (Vehicle IN) */}
+      {/* Camera Popup */}
       <Dialog
         open={openPopup === "in" && cameraOpen}
         onClose={handleClose}
@@ -173,7 +231,6 @@ export default function ParkingMain() {
         <DialogTitle>
           Scan Vehicle Number ({mode})
           <IconButton
-            aria-label="close"
             onClick={handleClose}
             sx={{ position: "absolute", right: 8, top: 8 }}
           >
@@ -194,7 +251,7 @@ export default function ParkingMain() {
               <Button
                 variant="contained"
                 onClick={captureAndReadText}
-                sx={{ bgcolor: "#2e7d32", "&:hover": { bgcolor: "#1b5e20" } }}
+                sx={{ bgcolor: "#2e7d32" }}
               >
                 Capture & Read Text
               </Button>
@@ -213,12 +270,11 @@ export default function ParkingMain() {
         </DialogContent>
       </Dialog>
 
-      {/* Second Popup (Form) */}
+      {/* Form Popup */}
       <Dialog open={formOpen} onClose={handleClose} fullWidth maxWidth="sm">
         <DialogTitle>
           Confirm Vehicle Details
           <IconButton
-            aria-label="close"
             onClick={handleClose}
             sx={{ position: "absolute", right: 8, top: 8 }}
           >
@@ -243,7 +299,7 @@ export default function ParkingMain() {
             <Button
               variant="contained"
               onClick={handleSubmit}
-              sx={{ bgcolor: "#2e7d32", "&:hover": { bgcolor: "#1b5e20" } }}
+              sx={{ bgcolor: "#2e7d32" }}
             >
               Submit
             </Button>
@@ -251,7 +307,7 @@ export default function ParkingMain() {
         </DialogContent>
       </Dialog>
 
-      {/* Vehicle OUT Popup */}
+      {/* OUT Popup */}
       <Dialog
         open={openPopup === "out"}
         onClose={handleClose}
@@ -261,15 +317,16 @@ export default function ParkingMain() {
         <DialogTitle>
           Vehicle OUT ({mode})
           <IconButton
-            aria-label="close"
             onClick={handleClose}
             sx={{ position: "absolute", right: 8, top: 8 }}
           >
             <CloseIcon />
           </IconButton>
         </DialogTitle>
+
         <DialogContent dividers>
           <Stack spacing={3} mt={2}>
+            {/* Search input */}
             <TextField
               label="Search Vehicle No."
               value={vehicleNo}
@@ -279,10 +336,50 @@ export default function ParkingMain() {
             <Button
               variant="contained"
               onClick={handleSubmit}
-              sx={{ bgcolor: "#c62828", "&:hover": { bgcolor: "#8e0000" } }}
+              sx={{ bgcolor: "#c62828" }}
             >
-              Search & Exit
+              Search
             </Button>
+
+            {/* Results */}
+            {searchResults.length > 0 && (
+              <Stack spacing={2} mt={3}>
+                {searchResults.map((r) => (
+                  <Box
+                    key={r._id}
+                    sx={{ p: 2, border: "1px solid #ccc", borderRadius: 2 }}
+                  >
+                    <Typography>
+                      <b>Vehicle:</b> {r.vehicle}
+                    </Typography>
+                    <Typography>
+                      <b>Token:</b> {r.token}
+                    </Typography>
+                    <Typography>
+                      <b>Status:</b> {r.status}
+                    </Typography>
+                    <Typography>
+                      <b>In Time:</b> {new Date(r.createdAt).toLocaleString()}
+                    </Typography>
+                    {r.status === "out" && (
+                      <Typography>
+                        <b>Out Time:</b>{" "}
+                        {new Date(r.updatedAt).toLocaleString()}
+                      </Typography>
+                    )}
+                    {r.status === "in" && (
+                      <Button
+                        variant="contained"
+                        sx={{ mt: 1, bgcolor: "#c62828" }}
+                        onClick={() => handleExitVehicle(r._id)}
+                      >
+                        Exit Vehicle
+                      </Button>
+                    )}
+                  </Box>
+                ))}
+              </Stack>
+            )}
           </Stack>
         </DialogContent>
       </Dialog>

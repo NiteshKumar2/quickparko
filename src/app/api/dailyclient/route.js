@@ -45,17 +45,17 @@ export async function POST(request) {
   }
 }
 
-// 📌 Update Daily Record
+// 📌 Update Daily Record by ID
 export async function PUT(request) {
   try {
     await connect();
 
     const reqBody = await request.json();
-    const { email, ...updateFields } = reqBody;
+    const { id, ...updateFields } = reqBody;
 
-    if (!email) {
+    if (!id) {
       return NextResponse.json(
-        { success: false, error: "Email is required to update daily record" },
+        { success: false, error: "ID is required to update daily record" },
         { status: 400 }
       );
     }
@@ -63,7 +63,7 @@ export async function PUT(request) {
     // Clean undefined fields
     const cleanedFields = cleanObject(updateFields);
 
-    const updatedUser = await Daily.findOneAndUpdate({ email }, cleanedFields, {
+    const updatedUser = await Daily.findByIdAndUpdate(id, cleanedFields, {
       new: true,
       runValidators: true,
     });
