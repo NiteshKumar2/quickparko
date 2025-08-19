@@ -136,16 +136,31 @@ export default function ParkingMain() {
     }
   };
 
-  // ✅ Camera
+  // ✅ Camera (prefer back camera, fallback to default)
   const startCamera = async () => {
     setCameraOpen(true);
-    if (navigator.mediaDevices?.getUserMedia) {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { exact: "environment" } },
+        audio: false,
+      });
       videoRef.current.srcObject = stream;
+    } catch (err) {
+      console.warn("Back camera not available, falling back:", err);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+        videoRef.current.srcObject = stream;
+      } catch (e) {
+        console.error("Camera access failed:", e);
+        toast.error("Unable to access camera ❌");
+      }
     }
   };
 
-  // ✅ Capture + OCR
+  // ✅ Capture + OCR (keep camera open if OCR fails)
   const captureAndReadText = async () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -155,14 +170,24 @@ export default function ParkingMain() {
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const {
-      data: { text },
-    } = await Tesseract.recognize(canvas, "eng");
+    try {
+      const {
+        data: { text },
+      } = await Tesseract.recognize(canvas, "eng");
 
-    const plate = text.replace(/[^A-Z0-9]/gi, "").toUpperCase();
-    setVehicleNo(plate || "");
-    setCameraOpen(false);
-    setFormOpen(true);
+      const plate = text.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+
+      if (plate) {
+        setVehicleNo(plate);
+        setCameraOpen(false);
+        setFormOpen(true);
+      } else {
+        toast.error("Could not read plate ❌, try again");
+      }
+    } catch (err) {
+      console.error("OCR failed:", err);
+      toast.error("OCR failed ❌");
+    }
   };
 
   return (
@@ -248,6 +273,7 @@ export default function ParkingMain() {
               ref={videoRef}
               autoPlay
               playsInline
+              muted
               style={{ width: "100%", borderRadius: 8 }}
             />
             <canvas ref={canvasRef} style={{ display: "none" }} />
