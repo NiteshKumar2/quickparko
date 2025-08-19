@@ -12,6 +12,7 @@ import {
   Typography,
   Switch,
   FormControlLabel,
+  CircularProgress,
 } from "@mui/material";
 import LoginIcon from "@mui/icons-material/Login";
 import LogoutIcon from "@mui/icons-material/Logout";
@@ -19,8 +20,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import Tesseract from "tesseract.js";
 import axios from "axios";
-import { useSession } from "next-auth/react"; // ✅ get email from session
-import toast, { Toaster } from "react-hot-toast";
+import { useSession } from "next-auth/react";
+import toast from "react-hot-toast";
 
 export default function ParkingMain() {
   const { data: session } = useSession();
@@ -33,6 +34,8 @@ export default function ParkingMain() {
   const [tokenNo, setTokenNo] = useState("");
   const [cameraOpen, setCameraOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -55,49 +58,52 @@ export default function ParkingMain() {
     setOpenPopup("out");
   };
 
+  // ✅ Close popups + stop camera
   const handleClose = () => {
     setOpenPopup(null);
     setCameraOpen(false);
     setFormOpen(false);
+
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach((t) => t.stop());
+    }
   };
+
+  // ✅ Exit vehicle
   const handleExitVehicle = async (id) => {
+    setLoading(true);
     try {
-      const res = await axios.put("/api/dailyclient", {
-        id,
-        status: "out", // directly request status change
-      });
+      const res = await axios.put("/api/dailyclient", { id, status: "out" });
 
       if (res.data.success) {
         toast.success("Vehicle marked OUT ✅");
 
-        // update UI
         setSearchResults((prev) =>
           prev.map((r) =>
             r._id === id ? { ...r, status: "out", updatedAt: new Date() } : r
           )
         );
 
-        // close popup after success
-        setTimeout(() => {
-          handleClose();
-        }, 800);
+        setTimeout(handleClose, 800);
       } else {
         toast.error(res.data.error || "Failed to mark vehicle OUT ❌");
       }
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.error || "Something went wrong ❌");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ✅ API Submit
-  // ✅ API Submit
+  // ✅ Submit form / search
   const handleSubmit = async () => {
     if (!userEmail) {
       toast.error("Please login first");
       return;
     }
 
+    setLoading(true);
     try {
       if (openPopup === "in") {
         await axios.post("/api/dailyclient", {
@@ -115,7 +121,7 @@ export default function ParkingMain() {
         });
 
         if (res.data.success) {
-          setSearchResults(res.data.data); // ✅ show in popup
+          setSearchResults(res.data.data);
           toast.success(`${res.data.count} records found`);
         } else {
           setSearchResults([]);
@@ -124,14 +130,16 @@ export default function ParkingMain() {
       }
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.error || "Something went wrong");
+      toast.error(err.response?.data?.error || "Something went wrong ❌");
+    } finally {
+      setLoading(false);
     }
   };
 
   // ✅ Camera
   const startCamera = async () => {
     setCameraOpen(true);
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    if (navigator.mediaDevices?.getUserMedia) {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoRef.current.srcObject = stream;
     }
@@ -158,7 +166,7 @@ export default function ParkingMain() {
   };
 
   return (
-    <Box sx={{ textAlign: "center", mt: 15 }}>
+    <Box sx={{ textAlign: "center", mt: 15, mx: 2 }}>
       {/* Mode Switch */}
       <FormControlLabel
         control={
@@ -181,13 +189,7 @@ export default function ParkingMain() {
       />
 
       {/* IN / OUT Buttons */}
-      <Stack
-        direction="row"
-        spacing={4}
-        justifyContent="center"
-        alignItems="center"
-        sx={{ mt: 5, mx: 2 }}
-      >
+      <Stack direction="row" spacing={4} justifyContent="center" sx={{ mt: 5 }}>
         <Button
           variant="contained"
           startIcon={<LoginIcon sx={{ fontSize: 40 }} />}
@@ -200,8 +202,9 @@ export default function ParkingMain() {
             borderRadius: "16px",
           }}
           onClick={handleOpenIn}
+          disabled={loading}
         >
-          VEHICLE IN
+          {loading ? <CircularProgress size={24} /> : "VEHICLE IN"}
         </Button>
 
         <Button
@@ -216,6 +219,7 @@ export default function ParkingMain() {
             borderRadius: "16px",
           }}
           onClick={handleOpenOut}
+          disabled={loading}
         >
           VEHICLE OUT
         </Button>
@@ -300,8 +304,9 @@ export default function ParkingMain() {
               variant="contained"
               onClick={handleSubmit}
               sx={{ bgcolor: "#2e7d32" }}
+              disabled={loading}
             >
-              Submit
+              {loading ? <CircularProgress size={24} /> : "Submit"}
             </Button>
           </Stack>
         </DialogContent>
@@ -337,8 +342,9 @@ export default function ParkingMain() {
               variant="contained"
               onClick={handleSubmit}
               sx={{ bgcolor: "#c62828" }}
+              disabled={loading}
             >
-              Search
+              {loading ? <CircularProgress size={24} /> : "Search"}
             </Button>
 
             {/* Results */}
@@ -372,8 +378,13 @@ export default function ParkingMain() {
                         variant="contained"
                         sx={{ mt: 1, bgcolor: "#c62828" }}
                         onClick={() => handleExitVehicle(r._id)}
+                        disabled={loading}
                       >
-                        Exit Vehicle
+                        {loading ? (
+                          <CircularProgress size={20} />
+                        ) : (
+                          "Exit Vehicle"
+                        )}
                       </Button>
                     )}
                   </Box>
