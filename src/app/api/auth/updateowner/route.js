@@ -2,6 +2,45 @@ import { NextResponse } from "next/server";
 import { connect } from "@/models/dbConfig";
 import { Owner } from "@/models/ownerModel";
 
+export async function GET(request) {
+  try {
+    // 1️⃣ Connect to DB
+    await connect();
+
+    // 2️⃣ Extract email from query params
+    const { searchParams } = new URL(request.url);
+    const email = searchParams.get("email");
+
+    // 3️⃣ Validate input
+    if (!email) {
+      return NextResponse.json(
+        { success: false, error: "Email is required" },
+        { status: 400 }
+      );
+    }
+
+    // 4️⃣ Find owner by email
+    const owner = await Owner.findOne({ email }).select("-password -__v");
+
+    // 5️⃣ Handle not found
+    if (!owner) {
+      return NextResponse.json(
+        { success: false, error: "Owner not found" },
+        { status: 404 }
+      );
+    }
+
+    // 6️⃣ Return success
+    return NextResponse.json({ success: true, owner }, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching owner:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(request) {
   try {
     // 1️⃣ Connect to the database

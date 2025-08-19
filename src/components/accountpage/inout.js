@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Box,
   Stack,
@@ -28,6 +28,7 @@ export default function ParkingMain() {
   const userEmail = session?.user?.email || "";
 
   const [mode, setMode] = useState("Daily");
+  const [availableModes, setAvailableModes] = useState([]); // store from D
   const [searchResults, setSearchResults] = useState([]);
   const [openPopup, setOpenPopup] = useState(null); // "in" | "out"
   const [vehicleNo, setVehicleNo] = useState("");
@@ -39,9 +40,43 @@ export default function ParkingMain() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
-  // ✅ Switch Daily/Monthly
+  // ✅ Fetch owner modes from API
+  useEffect(() => {
+    const fetchOwnerModes = async () => {
+      if (!userEmail) return;
+
+      try {
+        const res = await axios.get(`/api/auth/updateowner?email=${userEmail}`);
+
+        if (res.data.success) {
+          const { dailyMonthly } = res.data.owner;
+
+          setAvailableModes(dailyMonthly || []);
+
+          // set default mode to first available
+          if (dailyMonthly.includes("daily")) {
+            setMode("Daily");
+          } else if (dailyMonthly.includes("monthly")) {
+            setMode("Monthly");
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching owner modes:", err);
+      }
+    };
+
+    fetchOwnerModes();
+  }, [userEmail]);
+
+  // ✅ Switch toggle
   const handleSwitchChange = (e) => {
-    setMode(e.target.checked ? "Monthly" : "Daily");
+    // only toggle if user has both modes
+    if (
+      availableModes.includes("daily") &&
+      availableModes.includes("monthly")
+    ) {
+      setMode(e.target.checked ? "Monthly" : "Daily");
+    }
   };
 
   // ✅ Vehicle IN
@@ -181,7 +216,9 @@ export default function ParkingMain() {
     ctx.putImageData(imageData, 0, 0);
 
     try {
-      const { data: { text } } = await Tesseract.recognize(canvas, "eng", {
+      const {
+        data: { text },
+      } = await Tesseract.recognize(canvas, "eng", {
         tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
       });
 
@@ -192,11 +229,11 @@ export default function ParkingMain() {
         let attempts = [];
         for (let i = 0; i < 2; i++) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const { data: { text: retryText } } = await Tesseract.recognize(
-            canvas,
-            "eng",
-            { tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" }
-          );
+          const {
+            data: { text: retryText },
+          } = await Tesseract.recognize(canvas, "eng", {
+            tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+          });
           let cleaned = retryText.replace(/[^A-Z0-9]/gi, "").toUpperCase();
           if (cleaned.length > 5) attempts.push(cleaned);
         }
@@ -226,6 +263,7 @@ export default function ParkingMain() {
           <Switch
             checked={mode === "Monthly"}
             onChange={handleSwitchChange}
+            disabled={availableModes.length < 2} // disable if only 1 mode
             sx={{
               "& .MuiSwitch-switchBase.Mui-checked": { color: "#2e7d32" },
               "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
