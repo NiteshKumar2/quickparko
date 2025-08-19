@@ -160,7 +160,7 @@ export default function ParkingMain() {
     }
   };
 
-  // ✅ Capture + OCR (keep camera open if OCR fails)
+  // ✅ Improved OCR with preprocessing + retries
   const captureAndReadText = async () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -170,19 +170,47 @@ export default function ParkingMain() {
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+    // ✅ Preprocess: grayscale + thresholding
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      const val = avg > 120 ? 255 : 0;
+      data[i] = data[i + 1] = data[i + 2] = val;
+    }
+    ctx.putImageData(imageData, 0, 0);
+
     try {
-      const {
-        data: { text },
-      } = await Tesseract.recognize(canvas, "eng");
+      const { data: { text } } = await Tesseract.recognize(canvas, "eng", {
+        tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+      });
 
-      const plate = text.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+      let plate = text.replace(/[^A-Z0-9]/gi, "").toUpperCase();
 
-      if (plate) {
+      // Retry if too short
+      if (plate.length < 6) {
+        let attempts = [];
+        for (let i = 0; i < 2; i++) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const { data: { text: retryText } } = await Tesseract.recognize(
+            canvas,
+            "eng",
+            { tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" }
+          );
+          let cleaned = retryText.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+          if (cleaned.length > 5) attempts.push(cleaned);
+        }
+        if (attempts.length) {
+          plate = attempts.sort((a, b) => b.length - a.length)[0];
+        }
+      }
+
+      if (plate.length >= 6 && plate.length <= 10) {
         setVehicleNo(plate);
         setCameraOpen(false);
         setFormOpen(true);
       } else {
-        toast.error("Could not read plate ❌, try again");
+        toast.error("Plate not clear ❌, try again");
       }
     } catch (err) {
       console.error("OCR failed:", err);
