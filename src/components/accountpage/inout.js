@@ -22,11 +22,12 @@ import Tesseract from "tesseract.js";
 import axios from "axios";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export default function ParkingMain() {
   const { data: session } = useSession();
   const userEmail = session?.user?.email || "";
-
+  const router = useRouter();
   const [mode, setMode] = useState("Daily");
   const [availableModes, setAvailableModes] = useState([]); // store from D
   const [searchResults, setSearchResults] = useState([]);
@@ -39,7 +40,12 @@ export default function ParkingMain() {
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-
+  const handleRedirect = () => {
+    setLoading(true);
+    setTimeout(() => {
+      router.push("/monthlyplan"); // Navigate after short delay (optional)
+    }, 1);
+  };
   // ✅ Fetch owner modes from API
   useEffect(() => {
     const fetchOwnerModes = async () => {
@@ -86,7 +92,18 @@ export default function ParkingMain() {
     setOpenPopup("in");
     await startCamera();
   };
+  const handleOpenInM = async () => {
+    setVehicleNo("");
+    setOpenPopup("inm");
+    await startCamera();
+  };
 
+  // ✅ Vehicle OUT
+  const handleOpenOutM = async () => {
+    setVehicleNo("");
+    setOpenPopup("outm");
+    await startCamera();
+  };
   // ✅ Vehicle OUT
   const handleOpenOut = () => {
     setVehicleNo("");
@@ -146,6 +163,22 @@ export default function ParkingMain() {
           vehicle: vehicleNo,
           token: tokenNo,
           status: "in",
+        });
+        toast.success("Vehicle IN recorded ✅");
+        handleClose();
+      } else if (openPopup === "inm") {
+        const res = await axios.put("/api/monthlyclient/timing", {
+          email: userEmail,
+          vehicle: vehicleNo,
+          action: "in",
+        });
+        toast.success("Vehicle IN recorded ✅");
+        handleClose();
+      } else if (openPopup === "outm") {
+        const res = await axios.put("/api/monthlyclient/timing", {
+          email: userEmail,
+          vehicle: vehicleNo,
+          action: "out",
         });
         toast.success("Vehicle IN recorded ✅");
         handleClose();
@@ -279,42 +312,98 @@ export default function ParkingMain() {
         }
       />
 
-      {/* IN / OUT Buttons */}
-      <Stack direction="row" spacing={4} justifyContent="center" sx={{ mt: 5 }}>
-        <Button
-          variant="contained"
-          startIcon={<LoginIcon sx={{ fontSize: 40 }} />}
-          sx={{
-            bgcolor: "#2e7d32",
-            fontSize: "1.1rem",
-            fontWeight: "bold",
-            px: 6,
-            py: 2,
-            borderRadius: "16px",
-          }}
-          onClick={handleOpenIn}
-          disabled={loading}
-        >
-          {loading ? <CircularProgress size={24} /> : "VEHICLE IN"}
+      {mode === "Monthly" && (
+        <Button variant="outlined" onClick={handleRedirect}>
+          Add Vehicle
         </Button>
+      )}
 
-        <Button
-          variant="contained"
-          startIcon={<LogoutIcon sx={{ fontSize: 40 }} />}
-          sx={{
-            bgcolor: "#c62828",
-            fontSize: "1.1rem",
-            fontWeight: "bold",
-            px: 6,
-            py: 2,
-            borderRadius: "16px",
-          }}
-          onClick={handleOpenOut}
-          disabled={loading}
+      {/* IN / OUT Buttons */}
+      {mode === "Daily" && (
+        <Stack
+          direction="row"
+          spacing={4}
+          justifyContent="center"
+          sx={{ mt: 5 }}
         >
-          VEHICLE OUT
-        </Button>
-      </Stack>
+          <Button
+            variant="contained"
+            startIcon={<LoginIcon sx={{ fontSize: 40 }} />}
+            sx={{
+              bgcolor: "#2e7d32",
+              fontSize: "1.1rem",
+              fontWeight: "bold",
+              px: 6,
+              py: 2,
+              borderRadius: "16px",
+            }}
+            onClick={handleOpenIn}
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={24} /> : "VEHICLE IN"}
+          </Button>
+
+          <Button
+            variant="contained"
+            startIcon={<LogoutIcon sx={{ fontSize: 40 }} />}
+            sx={{
+              bgcolor: "#c62828",
+              fontSize: "1.1rem",
+              fontWeight: "bold",
+              px: 6,
+              py: 2,
+              borderRadius: "16px",
+            }}
+            onClick={handleOpenOut}
+            disabled={loading}
+          >
+            VEHICLE OUT
+          </Button>
+        </Stack>
+      )}
+
+      {mode === "Monthly" && (
+        <Stack
+          direction="row"
+          spacing={4}
+          justifyContent="center"
+          sx={{ mt: 5 }}
+        >
+          <Button
+            variant="contained"
+            startIcon={<LoginIcon sx={{ fontSize: 40 }} />}
+            sx={{
+              bgcolor: "#2e7d32",
+              fontSize: "1.1rem",
+              fontWeight: "bold",
+              px: 6,
+              py: 2,
+              borderRadius: "16px",
+            }}
+            onClick={handleOpenInM}
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={24} /> : "VEHICLE IN"}
+          </Button>
+
+          <Button
+            variant="contained"
+            startIcon={<LogoutIcon sx={{ fontSize: 40 }} />}
+            sx={{
+              bgcolor: "#c62828",
+              fontSize: "1.1rem",
+              fontWeight: "bold",
+              px: 6,
+              py: 2,
+              borderRadius: "16px",
+            }}
+            onClick={handleOpenOutM}
+            disabled={loading}
+          >
+            VEHICLE OUT
+          </Button>
+        </Stack>
+      )}
 
       {/* Camera Popup */}
       <Dialog
@@ -390,6 +479,170 @@ export default function ParkingMain() {
               label="Token No."
               value={tokenNo}
               onChange={(e) => setTokenNo(e.target.value)}
+              fullWidth
+            />
+            <Button
+              variant="contained"
+              onClick={handleSubmit}
+              sx={{ bgcolor: "#2e7d32" }}
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} /> : "Submit"}
+            </Button>
+          </Stack>
+        </DialogContent>
+      </Dialog>
+
+      {/* mCamera Popup */}
+      <Dialog
+        open={openPopup === "inm" && cameraOpen}
+        onClose={handleClose}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          Scan Vehicle Number ({mode})
+          <IconButton
+            onClick={handleClose}
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent dividers>
+          <Box sx={{ textAlign: "center" }}>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{ width: "100%", borderRadius: 8 }}
+            />
+            <canvas ref={canvasRef} style={{ display: "none" }} />
+            <Stack spacing={2} mt={2}>
+              <Button
+                variant="contained"
+                onClick={captureAndReadText}
+                sx={{ bgcolor: "#2e7d32" }}
+              >
+                Capture & Read Text
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<CameraAltIcon />}
+                onClick={() => {
+                  setCameraOpen(false);
+                  setFormOpen(true);
+                }}
+              >
+                Enter Manually
+              </Button>
+            </Stack>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* Form Popup */}
+      <Dialog open={formOpen} onClose={handleClose} fullWidth maxWidth="sm">
+        <DialogTitle>
+          Confirm Vehicle Details
+          <IconButton
+            onClick={handleClose}
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent dividers>
+          <Stack spacing={3} mt={2}>
+            <TextField
+              label="Vehicle No."
+              value={vehicleNo}
+              onChange={(e) => setVehicleNo(e.target.value)}
+              fullWidth
+            />
+            <Button
+              variant="contained"
+              onClick={handleSubmit}
+              sx={{ bgcolor: "#2e7d32" }}
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} /> : "Submit"}
+            </Button>
+          </Stack>
+        </DialogContent>
+      </Dialog>
+
+      {/* mCamera Popup  out*/}
+      <Dialog
+        open={openPopup === "outm" && cameraOpen}
+        onClose={handleClose}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          Scan Vehicle Number ({mode})
+          <IconButton
+            onClick={handleClose}
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent dividers>
+          <Box sx={{ textAlign: "center" }}>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{ width: "100%", borderRadius: 8 }}
+            />
+            <canvas ref={canvasRef} style={{ display: "none" }} />
+            <Stack spacing={2} mt={2}>
+              <Button
+                variant="contained"
+                onClick={captureAndReadText}
+                sx={{ bgcolor: "#2e7d32" }}
+              >
+                Capture & Read Text
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<CameraAltIcon />}
+                onClick={() => {
+                  setCameraOpen(false);
+                  setFormOpen(true);
+                }}
+              >
+                Enter Manually
+              </Button>
+            </Stack>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* Form Popup */}
+      <Dialog open={formOpen} onClose={handleClose} fullWidth maxWidth="sm">
+        <DialogTitle>
+          Confirm Vehicle Details
+          <IconButton
+            onClick={handleClose}
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent dividers>
+          <Stack spacing={3} mt={2}>
+            <TextField
+              label="Vehicle No."
+              value={vehicleNo}
+              onChange={(e) => setVehicleNo(e.target.value)}
               fullWidth
             />
             <Button
