@@ -1,3 +1,4 @@
+import ContactPage from "@/components/accountpage/contactus";
 import InOutButtons from "@/components/accountpage/inout";
 
 export default function Account() {
@@ -8,6 +9,7 @@ export default function Account() {
       }}
     >
       <InOutButtons />
+      <ContactPage />
     </div>
   );
 }

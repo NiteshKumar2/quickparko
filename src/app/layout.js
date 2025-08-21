@@ -17,7 +17,7 @@ export const metadata = {
   title: "QuickParko",
   description: "parking",
   icons: {
-    icon: "/logo.png",
+    icon: "/logo1.png",
   },
 };
 

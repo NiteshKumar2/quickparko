@@ -1,3 +1,4 @@
+import ContactPage from "@/components/accountpage/contactus";
 import ParkingBanner from "@/components/frontpage/Banner";
 import ParkingProcess from "@/components/frontpage/Procees";
 import Testimonials from "@/components/frontpage/Testimonial";
@@ -12,6 +13,7 @@ export default function Home() {
       <ParkingBanner />
       <ParkingProcess />
       <Testimonials/>
+      <ContactPage/>
     </div>
   );
 }
