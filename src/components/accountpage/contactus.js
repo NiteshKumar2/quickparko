@@ -67,7 +67,7 @@ export default function ContactPage() {
           color="text.secondary"
           mb={3}
         >
-          We'd love to hear from you! Please fill out the form below.
+          We&apos;d love to hear from you! Please fill out the form below.
         </Typography>
         <form onSubmit={handleSubmit}>
           <Stack spacing={3}>

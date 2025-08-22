@@ -17,7 +17,6 @@ export default function UpdateMonthlyPage() {
   const router = useRouter();
 
   const [form, setForm] = useState({
-    email: "", // self-written when not from session
     vehicle: "",
     phone: "",
     planExpire: "", // yyyy-mm-dd
@@ -31,12 +30,7 @@ export default function UpdateMonthlyPage() {
   };
 
   const handleSubmit = async () => {
-    if (
-      (!session?.user?.email && !form.email.trim()) ||
-      !form.vehicle.trim() ||
-      !form.phone.trim() ||
-      !form.planExpire.trim()
-    ) {
+    if (!form.vehicle.trim() || !form.phone.trim() || !form.planExpire.trim()) {
       alert("All fields are required!");
       return;
     }
@@ -44,12 +38,12 @@ export default function UpdateMonthlyPage() {
     setLoading(true);
 
     try {
-      // ✅ Decide POST or PUT
+      // ✅ Always use session email
       const endpoint = "/api/monthlyclient";
       const method = isNew ? "post" : "put";
 
       const res = await axios[method](endpoint, {
-        email: session?.user?.email || form.email,
+        email: session?.user?.email, // email always from session
         vehicle: form.vehicle,
         phone: form.phone,
         planExpire: form.planExpire,
@@ -96,19 +90,6 @@ export default function UpdateMonthlyPage() {
         >
           {isNew ? "Create Monthly Plan" : "Update Monthly Plan"}
         </Typography>
-
-        {/* Email input only if not provided by session */}
-        {!session?.user?.email && (
-          <TextField
-            fullWidth
-            label="Email Address"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            margin="normal"
-            required
-          />
-        )}
 
         <TextField
           fullWidth
