@@ -1,5 +1,6 @@
 import ContactPage from "@/components/accountpage/contactus";
 import InOutButtons from "@/components/accountpage/inout";
+import Reports from "@/components/accountpage/Reports";
 
 export default function Account() {
   return (
@@ -9,6 +10,7 @@ export default function Account() {
       }}
     >
       <InOutButtons />
+      <Reports />
       <ContactPage />
     </div>
   );

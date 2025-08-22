@@ -28,10 +28,11 @@ export default function ParkingMain() {
   const { data: session } = useSession();
   const userEmail = session?.user?.email || "";
   const router = useRouter();
+
   const [mode, setMode] = useState("Daily");
-  const [availableModes, setAvailableModes] = useState([]); // store from D
+  const [availableModes, setAvailableModes] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
-  const [openPopup, setOpenPopup] = useState(null); // "in" | "out"
+  const [openPopup, setOpenPopup] = useState(null); // "in" | "inm" | "outm" | "out"
   const [vehicleNo, setVehicleNo] = useState("");
   const [tokenNo, setTokenNo] = useState("");
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -40,52 +41,34 @@ export default function ParkingMain() {
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const handleRedirect = () => {
-    setLoading(true);
-    setTimeout(() => {
-      router.push("/monthlyplan"); // Navigate after short delay (optional)
-    }, 1);
-  };
-  // ✅ Fetch owner modes from API
+
+  // Fetch available modes
   useEffect(() => {
     const fetchOwnerModes = async () => {
       if (!userEmail) return;
-
       try {
         const res = await axios.get(`/api/auth/updateowner?email=${userEmail}`);
-
         if (res.data.success) {
           const { dailyMonthly } = res.data.owner;
-
           setAvailableModes(dailyMonthly || []);
-
-          // set default mode to first available
-          if (dailyMonthly.includes("daily")) {
-            setMode("Daily");
-          } else if (dailyMonthly.includes("monthly")) {
-            setMode("Monthly");
-          }
+          if (dailyMonthly.includes("daily")) setMode("Daily");
+          else if (dailyMonthly.includes("monthly")) setMode("Monthly");
         }
       } catch (err) {
-        console.error("Error fetching owner modes:", err);
+        console.error("Error fetching modes:", err);
       }
     };
-
     fetchOwnerModes();
   }, [userEmail]);
 
-  // ✅ Switch toggle
+  // Switch toggle
   const handleSwitchChange = (e) => {
-    // only toggle if user has both modes
-    if (
-      availableModes.includes("daily") &&
-      availableModes.includes("monthly")
-    ) {
+    if (availableModes.includes("daily") && availableModes.includes("monthly")) {
       setMode(e.target.checked ? "Monthly" : "Daily");
     }
   };
 
-  // ✅ Vehicle IN
+  // Open handlers
   const handleOpenIn = async () => {
     setTokenNo(`TKN-${Math.floor(Math.random() * 10000)}`);
     setVehicleNo("");
@@ -97,64 +80,32 @@ export default function ParkingMain() {
     setOpenPopup("inm");
     await startCamera();
   };
-
-  // ✅ Vehicle OUT
   const handleOpenOutM = async () => {
     setVehicleNo("");
     setOpenPopup("outm");
     await startCamera();
   };
-  // ✅ Vehicle OUT
   const handleOpenOut = () => {
     setVehicleNo("");
     setOpenPopup("out");
   };
 
-  // ✅ Close popups + stop camera
+  // Close all
   const handleClose = () => {
     setOpenPopup(null);
     setCameraOpen(false);
     setFormOpen(false);
-
     if (videoRef.current?.srcObject) {
       videoRef.current.srcObject.getTracks().forEach((t) => t.stop());
     }
   };
 
-  // ✅ Exit vehicle
-  const handleExitVehicle = async (id) => {
-    setLoading(true);
-    try {
-      const res = await axios.put("/api/dailyclient", { id, status: "out" });
-
-      if (res.data.success) {
-        toast.success("Vehicle marked OUT ✅");
-
-        setSearchResults((prev) =>
-          prev.map((r) =>
-            r._id === id ? { ...r, status: "out", updatedAt: new Date() } : r
-          )
-        );
-
-        setTimeout(handleClose, 800);
-      } else {
-        toast.error(res.data.error || "Failed to mark vehicle OUT ❌");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.error || "Something went wrong ❌");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ✅ Submit form / search
+  // Submit
   const handleSubmit = async () => {
     if (!userEmail) {
       toast.error("Please login first");
       return;
     }
-
     setLoading(true);
     try {
       if (openPopup === "in") {
@@ -164,33 +115,32 @@ export default function ParkingMain() {
           token: tokenNo,
           status: "in",
         });
-        toast.success("Vehicle IN recorded ✅");
+        toast.success("Daily IN recorded ✅");
         handleClose();
       } else if (openPopup === "inm") {
-        const res = await axios.put("/api/monthlyclient/timing", {
+        await axios.put("/api/monthlyclient/timing", {
           email: userEmail,
           vehicle: vehicleNo,
           action: "in",
         });
-        toast.success("Vehicle IN recorded ✅");
+        toast.success("Monthly IN recorded ✅");
         handleClose();
       } else if (openPopup === "outm") {
-        const res = await axios.put("/api/monthlyclient/timing", {
+        await axios.put("/api/monthlyclient/timing", {
           email: userEmail,
           vehicle: vehicleNo,
           action: "out",
         });
-        toast.success("Vehicle IN recorded ✅");
+        toast.success("Monthly OUT recorded ✅");
         handleClose();
       } else if (openPopup === "out") {
         const res = await axios.post("/api/dailyclient/exitsearch", {
           email: userEmail,
           y: vehicleNo,
         });
-
         if (res.data.success) {
           setSearchResults(res.data.data);
-          toast.success(`${res.data.count} records found`);
+          toast.success(`${res.data.count} record(s) found`);
         } else {
           setSearchResults([]);
           toast.error(res.data.message || "No record found ❌");
@@ -198,92 +148,76 @@ export default function ParkingMain() {
       }
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.error || "Something went wrong ❌");
+      toast.error(err.response?.data?.error || "Error ❌");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Camera (prefer back camera, fallback to default)
+  // Exit daily OUT
+  const handleExitVehicle = async (id) => {
+    setLoading(true);
+    try {
+      const res = await axios.put("/api/dailyclient", { id, status: "out" });
+      if (res.data.success) {
+        toast.success("Vehicle marked OUT ✅");
+        setSearchResults((prev) =>
+          prev.map((r) =>
+            r._id === id ? { ...r, status: "out", updatedAt: new Date() } : r
+          )
+        );
+        setTimeout(handleClose, 800);
+      } else {
+        toast.error(res.data.error || "Failed ❌");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong ❌");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Camera
   const startCamera = async () => {
     setCameraOpen(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { exact: "environment" } },
-        audio: false,
       });
       videoRef.current.srcObject = stream;
-    } catch (err) {
-      console.warn("Back camera not available, falling back:", err);
+    } catch {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: false,
-        });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         videoRef.current.srcObject = stream;
-      } catch (e) {
-        console.error("Camera access failed:", e);
+      } catch {
         toast.error("Unable to access camera ❌");
       }
     }
   };
 
-  // ✅ Improved OCR with preprocessing + retries
+  // OCR
   const captureAndReadText = async () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // ✅ Preprocess: grayscale + thresholding
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-      const val = avg > 120 ? 255 : 0;
-      data[i] = data[i + 1] = data[i + 2] = val;
-    }
-    ctx.putImageData(imageData, 0, 0);
-
     try {
-      const {
-        data: { text },
-      } = await Tesseract.recognize(canvas, "eng", {
+      const { data: { text } } = await Tesseract.recognize(canvas, "eng", {
         tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
       });
-
       let plate = text.replace(/[^A-Z0-9]/gi, "").toUpperCase();
-
-      // Retry if too short
-      if (plate.length < 6) {
-        let attempts = [];
-        for (let i = 0; i < 2; i++) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const {
-            data: { text: retryText },
-          } = await Tesseract.recognize(canvas, "eng", {
-            tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-          });
-          let cleaned = retryText.replace(/[^A-Z0-9]/gi, "").toUpperCase();
-          if (cleaned.length > 5) attempts.push(cleaned);
-        }
-        if (attempts.length) {
-          plate = attempts.sort((a, b) => b.length - a.length)[0];
-        }
-      }
-
-      if (plate.length >= 6 && plate.length <= 10) {
+      if (plate.length >= 6) {
         setVehicleNo(plate);
         setCameraOpen(false);
         setFormOpen(true);
       } else {
-        toast.error("Plate not clear ❌, try again");
+        toast.error("Plate not clear ❌");
       }
-    } catch (err) {
-      console.error("OCR failed:", err);
+    } catch {
       toast.error("OCR failed ❌");
     }
   };
@@ -296,158 +230,86 @@ export default function ParkingMain() {
           <Switch
             checked={mode === "Monthly"}
             onChange={handleSwitchChange}
-            disabled={availableModes.length < 2} // disable if only 1 mode
-            sx={{
-              "& .MuiSwitch-switchBase.Mui-checked": { color: "#2e7d32" },
-              "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-                backgroundColor: "#66bb6a",
-              },
-            }}
+            disabled={availableModes.length < 2}
           />
         }
-        label={
-          <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-            {mode} Mode
-          </Typography>
-        }
+        label={<Typography variant="h6">{mode} Mode</Typography>}
       />
 
       {mode === "Monthly" && (
-        <Button variant="outlined" onClick={handleRedirect}>
+        <Button variant="outlined" onClick={() => router.push("/monthlyplan")}>
           Add Vehicle
         </Button>
       )}
 
       {/* IN / OUT Buttons */}
-      {mode === "Daily" && (
-        <Stack
-          direction="row"
-          spacing={4}
-          justifyContent="center"
-          sx={{ mt: 5 }}
-        >
-          <Button
-            variant="contained"
-            startIcon={<LoginIcon sx={{ fontSize: 40 }} />}
-            sx={{
-              bgcolor: "#2e7d32",
-              fontSize: "1.1rem",
-              fontWeight: "bold",
-              px: 6,
-              py: 2,
-              borderRadius: "16px",
-            }}
-            onClick={handleOpenIn}
-            disabled={loading}
-          >
-            {loading ? <CircularProgress size={24} /> : "VEHICLE IN"}
-          </Button>
+      <Stack direction="row" spacing={4} justifyContent="center" sx={{ mt: 5 }}>
+        {mode === "Daily" ? (
+          <>
+            <Button
+              variant="contained"
+              startIcon={<LoginIcon />}
+              onClick={handleOpenIn}
+              disabled={loading}
+              sx={{ bgcolor: "#2e7d32" }}
+            >
+              VEHICLE IN
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<LogoutIcon />}
+              onClick={handleOpenOut}
+              disabled={loading}
+              sx={{ bgcolor: "#c62828" }}
+            >
+              VEHICLE OUT
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              variant="contained"
+              startIcon={<LoginIcon />}
+              onClick={handleOpenInM}
+              disabled={loading}
+              sx={{ bgcolor: "#2e7d32" }}
+            >
+              VEHICLE IN
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<LogoutIcon />}
+              onClick={handleOpenOutM}
+              disabled={loading}
+              sx={{ bgcolor: "#c62828" }}
+            >
+              VEHICLE OUT
+            </Button>
+          </>
+        )}
+      </Stack>
 
-          <Button
-            variant="contained"
-            startIcon={<LogoutIcon sx={{ fontSize: 40 }} />}
-            sx={{
-              bgcolor: "#c62828",
-              fontSize: "1.1rem",
-              fontWeight: "bold",
-              px: 6,
-              py: 2,
-              borderRadius: "16px",
-            }}
-            onClick={handleOpenOut}
-            disabled={loading}
-          >
-            VEHICLE OUT
-          </Button>
-        </Stack>
-      )}
-
-      {mode === "Monthly" && (
-        <Stack
-          direction="row"
-          spacing={4}
-          justifyContent="center"
-          sx={{ mt: 5 }}
-        >
-          <Button
-            variant="contained"
-            startIcon={<LoginIcon sx={{ fontSize: 40 }} />}
-            sx={{
-              bgcolor: "#2e7d32",
-              fontSize: "1.1rem",
-              fontWeight: "bold",
-              px: 6,
-              py: 2,
-              borderRadius: "16px",
-            }}
-            onClick={handleOpenInM}
-            disabled={loading}
-          >
-            {loading ? <CircularProgress size={24} /> : "VEHICLE IN"}
-          </Button>
-
-          <Button
-            variant="contained"
-            startIcon={<LogoutIcon sx={{ fontSize: 40 }} />}
-            sx={{
-              bgcolor: "#c62828",
-              fontSize: "1.1rem",
-              fontWeight: "bold",
-              px: 6,
-              py: 2,
-              borderRadius: "16px",
-            }}
-            onClick={handleOpenOutM}
-            disabled={loading}
-          >
-            VEHICLE OUT
-          </Button>
-        </Stack>
-      )}
-
-      {/* Camera Popup */}
+      {/* ✅ Single Camera Popup */}
       <Dialog
-        open={openPopup === "in" && cameraOpen}
+        open={(["in", "inm", "outm"].includes(openPopup)) && cameraOpen}
         onClose={handleClose}
-        fullWidth
-        maxWidth="sm"
+        fullWidth maxWidth="sm"
       >
         <DialogTitle>
           Scan Vehicle Number ({mode})
-          <IconButton
-            onClick={handleClose}
-            sx={{ position: "absolute", right: 8, top: 8 }}
-          >
+          <IconButton onClick={handleClose} sx={{ position: "absolute", right: 8, top: 8 }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-
         <DialogContent dividers>
           <Box sx={{ textAlign: "center" }}>
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              style={{ width: "100%", borderRadius: 8 }}
-            />
+            <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%" }} />
             <canvas ref={canvasRef} style={{ display: "none" }} />
             <Stack spacing={2} mt={2}>
-              <Button
-                variant="contained"
-                onClick={captureAndReadText}
-                sx={{ bgcolor: "#2e7d32" }}
-              >
+              <Button variant="contained" onClick={captureAndReadText}>
                 Capture & Read Text
               </Button>
-              <Button
-                variant="outlined"
-                startIcon={<CameraAltIcon />}
-                onClick={() => {
-                  setCameraOpen(false);
-                  setFormOpen(true);
-                }}
-              >
+              <Button variant="outlined" startIcon={<CameraAltIcon />} onClick={() => { setCameraOpen(false); setFormOpen(true); }}>
                 Enter Manually
               </Button>
             </Stack>
@@ -455,287 +317,70 @@ export default function ParkingMain() {
         </DialogContent>
       </Dialog>
 
-      {/* Form Popup */}
+      {/* ✅ Single Form Popup */}
       <Dialog open={formOpen} onClose={handleClose} fullWidth maxWidth="sm">
         <DialogTitle>
           Confirm Vehicle Details
-          <IconButton
-            onClick={handleClose}
-            sx={{ position: "absolute", right: 8, top: 8 }}
-          >
+          <IconButton onClick={handleClose} sx={{ position: "absolute", right: 8, top: 8 }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-
         <DialogContent dividers>
-          <Stack spacing={3} mt={2}>
+          <Stack spacing={3}>
             <TextField
               label="Vehicle No."
               value={vehicleNo}
               onChange={(e) => setVehicleNo(e.target.value)}
               fullWidth
             />
-            <TextField
-              label="Token No."
-              value={tokenNo}
-              onChange={(e) => setTokenNo(e.target.value)}
-              fullWidth
-            />
-            <Button
-              variant="contained"
-              onClick={handleSubmit}
-              sx={{ bgcolor: "#2e7d32" }}
-              disabled={loading}
-            >
+            {openPopup === "in" && (
+              <TextField
+                label="Token No."
+                value={tokenNo}
+                onChange={(e) => setTokenNo(e.target.value)}
+                fullWidth
+              />
+            )}
+            <Button variant="contained" onClick={handleSubmit} disabled={loading}>
               {loading ? <CircularProgress size={24} /> : "Submit"}
             </Button>
           </Stack>
         </DialogContent>
       </Dialog>
 
-      {/* mCamera Popup */}
-      <Dialog
-        open={openPopup === "inm" && cameraOpen}
-        onClose={handleClose}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>
-          Scan Vehicle Number ({mode})
-          <IconButton
-            onClick={handleClose}
-            sx={{ position: "absolute", right: 8, top: 8 }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-
-        <DialogContent dividers>
-          <Box sx={{ textAlign: "center" }}>
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              style={{ width: "100%", borderRadius: 8 }}
-            />
-            <canvas ref={canvasRef} style={{ display: "none" }} />
-            <Stack spacing={2} mt={2}>
-              <Button
-                variant="contained"
-                onClick={captureAndReadText}
-                sx={{ bgcolor: "#2e7d32" }}
-              >
-                Capture & Read Text
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<CameraAltIcon />}
-                onClick={() => {
-                  setCameraOpen(false);
-                  setFormOpen(true);
-                }}
-              >
-                Enter Manually
-              </Button>
-            </Stack>
-          </Box>
-        </DialogContent>
-      </Dialog>
-
-      {/* Form Popup */}
-      <Dialog open={formOpen} onClose={handleClose} fullWidth maxWidth="sm">
-        <DialogTitle>
-          Confirm Vehicle Details
-          <IconButton
-            onClick={handleClose}
-            sx={{ position: "absolute", right: 8, top: 8 }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-
-        <DialogContent dividers>
-          <Stack spacing={3} mt={2}>
-            <TextField
-              label="Vehicle No."
-              value={vehicleNo}
-              onChange={(e) => setVehicleNo(e.target.value)}
-              fullWidth
-            />
-            <Button
-              variant="contained"
-              onClick={handleSubmit}
-              sx={{ bgcolor: "#2e7d32" }}
-              disabled={loading}
-            >
-              {loading ? <CircularProgress size={24} /> : "Submit"}
-            </Button>
-          </Stack>
-        </DialogContent>
-      </Dialog>
-
-      {/* mCamera Popup  out*/}
-      <Dialog
-        open={openPopup === "outm" && cameraOpen}
-        onClose={handleClose}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>
-          Scan Vehicle Number ({mode})
-          <IconButton
-            onClick={handleClose}
-            sx={{ position: "absolute", right: 8, top: 8 }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-
-        <DialogContent dividers>
-          <Box sx={{ textAlign: "center" }}>
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              style={{ width: "100%", borderRadius: 8 }}
-            />
-            <canvas ref={canvasRef} style={{ display: "none" }} />
-            <Stack spacing={2} mt={2}>
-              <Button
-                variant="contained"
-                onClick={captureAndReadText}
-                sx={{ bgcolor: "#2e7d32" }}
-              >
-                Capture & Read Text
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<CameraAltIcon />}
-                onClick={() => {
-                  setCameraOpen(false);
-                  setFormOpen(true);
-                }}
-              >
-                Enter Manually
-              </Button>
-            </Stack>
-          </Box>
-        </DialogContent>
-      </Dialog>
-
-      {/* Form Popup */}
-      <Dialog open={formOpen} onClose={handleClose} fullWidth maxWidth="sm">
-        <DialogTitle>
-          Confirm Vehicle Details
-          <IconButton
-            onClick={handleClose}
-            sx={{ position: "absolute", right: 8, top: 8 }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-
-        <DialogContent dividers>
-          <Stack spacing={3} mt={2}>
-            <TextField
-              label="Vehicle No."
-              value={vehicleNo}
-              onChange={(e) => setVehicleNo(e.target.value)}
-              fullWidth
-            />
-            <Button
-              variant="contained"
-              onClick={handleSubmit}
-              sx={{ bgcolor: "#2e7d32" }}
-              disabled={loading}
-            >
-              {loading ? <CircularProgress size={24} /> : "Submit"}
-            </Button>
-          </Stack>
-        </DialogContent>
-      </Dialog>
-
-      {/* OUT Popup */}
-      <Dialog
-        open={openPopup === "out"}
-        onClose={handleClose}
-        fullWidth
-        maxWidth="sm"
-      >
+      {/* ✅ OUT Search Popup */}
+      <Dialog open={openPopup === "out"} onClose={handleClose} fullWidth maxWidth="sm">
         <DialogTitle>
           Vehicle OUT ({mode})
-          <IconButton
-            onClick={handleClose}
-            sx={{ position: "absolute", right: 8, top: 8 }}
-          >
+          <IconButton onClick={handleClose} sx={{ position: "absolute", right: 8, top: 8 }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-
         <DialogContent dividers>
-          <Stack spacing={3} mt={2}>
-            {/* Search input */}
+          <Stack spacing={3}>
             <TextField
               label="Search Vehicle No."
               value={vehicleNo}
               onChange={(e) => setVehicleNo(e.target.value)}
               fullWidth
             />
-            <Button
-              variant="contained"
-              onClick={handleSubmit}
-              sx={{ bgcolor: "#c62828" }}
-              disabled={loading}
-            >
+            <Button variant="contained" onClick={handleSubmit} disabled={loading} sx={{ bgcolor: "#c62828" }}>
               {loading ? <CircularProgress size={24} /> : "Search"}
             </Button>
-
-            {/* Results */}
-            {searchResults.length > 0 && (
-              <Stack spacing={2} mt={3}>
-                {searchResults.map((r) => (
-                  <Box
-                    key={r._id}
-                    sx={{ p: 2, border: "1px solid #ccc", borderRadius: 2 }}
-                  >
-                    <Typography>
-                      <b>Vehicle:</b> {r.vehicle}
-                    </Typography>
-                    <Typography>
-                      <b>Token:</b> {r.token}
-                    </Typography>
-                    <Typography>
-                      <b>Status:</b> {r.status}
-                    </Typography>
-                    <Typography>
-                      <b>In Time:</b> {new Date(r.createdAt).toLocaleString()}
-                    </Typography>
-                    {r.status === "out" && (
-                      <Typography>
-                        <b>Out Time:</b>{" "}
-                        {new Date(r.updatedAt).toLocaleString()}
-                      </Typography>
-                    )}
-                    {r.status === "in" && (
-                      <Button
-                        variant="contained"
-                        sx={{ mt: 1, bgcolor: "#c62828" }}
-                        onClick={() => handleExitVehicle(r._id)}
-                        disabled={loading}
-                      >
-                        {loading ? (
-                          <CircularProgress size={20} />
-                        ) : (
-                          "Exit Vehicle"
-                        )}
-                      </Button>
-                    )}
-                  </Box>
-                ))}
-              </Stack>
-            )}
+            {searchResults.map((r) => (
+              <Box key={r._id} sx={{ p: 2, border: "1px solid #ccc", borderRadius: 2 }}>
+                <Typography><b>Vehicle:</b> {r.vehicle}</Typography>
+                <Typography><b>Token:</b> {r.token}</Typography>
+                <Typography><b>Status:</b> {r.status}</Typography>
+                <Typography><b>In Time:</b> {new Date(r.createdAt).toLocaleString()}</Typography>
+                {r.status === "out" && <Typography><b>Out Time:</b> {new Date(r.updatedAt).toLocaleString()}</Typography>}
+                {r.status === "in" && (
+                  <Button variant="contained" sx={{ mt: 1, bgcolor: "#c62828" }} onClick={() => handleExitVehicle(r._id)} disabled={loading}>
+                    {loading ? <CircularProgress size={20} /> : "Exit Vehicle"}
+                  </Button>
+                )}
+              </Box>
+            ))}
           </Stack>
         </DialogContent>
       </Dialog>

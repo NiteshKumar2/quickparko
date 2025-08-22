@@ -33,6 +33,7 @@ export async function GET(request) {
     // Query DB
     const results = await Daily.find({
       email: email,
+      status: "in", // ✅ filter by status
       createdAt: { $lt: cutoffTime },
     }).lean();
 
