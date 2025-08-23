@@ -68,7 +68,7 @@ export default function Reports() {
     }
   };
 
-  // ✅ Fetch today’s entries
+  // ✅ Fetch today entries
   const fetchTodayEntries = async () => {
     if (!userEmail) return toast.error("⚠️ Email not found");
     try {
@@ -80,7 +80,7 @@ export default function Reports() {
         toast.error(res.data?.message || "No entries found ❌");
     } catch (err) {
       console.error(err);
-      toast.error("Error fetching today's entries ❌");
+      toast.error("Error fetching today&apos;s entries ❌");
     }
   };
 
@@ -176,7 +176,7 @@ export default function Reports() {
         <Divider sx={{ my: 3 }} />
 
         <Button variant="outlined" onClick={fetchTodayEntries}>
-          Get Today's Entries
+          Get Today&apos;s Entries
         </Button>
         {todayEntries !== null && (
           <Typography mt={2} fontWeight="bold">
