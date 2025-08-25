@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -24,11 +24,43 @@ export default function UpdateOwnerPage() {
     phone: "",
     address: "",
     termCondition: "",
-    dailyMonthly: [], // ✅ array instead of string
+    dailyMonthly: [],
     price: "",
   });
 
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true); // ✅ loader for initial fetch
+
+  // 🔹 Fetch owner data when session is ready
+  useEffect(() => {
+    const fetchOwner = async () => {
+      if (status === "authenticated" && session?.user?.email) {
+        try {
+          const res = await axios.get(
+            `/api/auth/updateowner?email=${session.user.email}`
+          );
+          if (res.data.success) {
+            const owner = res.data.owner;
+
+            setForm({
+              username: owner.username || "",
+              phone: owner.phone || "",
+              address: owner.address || "",
+              termCondition: owner.termCondition || "",
+              dailyMonthly: owner.dailyMonthly || [],
+              price: owner.price || "",
+            });
+          }
+        } catch (err) {
+          console.error("Error fetching owner:", err);
+        } finally {
+          setFetching(false);
+        }
+      }
+    };
+
+    fetchOwner();
+  }, [status, session]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -66,16 +98,14 @@ export default function UpdateOwnerPage() {
     try {
       const res = await axios.put("/api/auth/updateowner", {
         email: session.user.email, // ✅ taken from NextAuth
-        isVerified: true, // ✅ force verified on update
+        isVerified: true,
         ...form,
       });
 
-      const data = res.data;
-
-      if (data.success) {
-        router.push("/account"); // ✅ redirect after update
+      if (res.data.success) {
+        router.push("/account");
       } else {
-        alert(data.error || "Failed to update user");
+        alert(res.data.error || "Failed to update user");
       }
     } catch (error) {
       console.error("Error:", error);
@@ -85,7 +115,7 @@ export default function UpdateOwnerPage() {
     }
   };
 
-  if (status === "loading") {
+  if (status === "loading" || fetching) {
     return (
       <Container maxWidth="sm" sx={{ py: 6, textAlign: "center" }}>
         <CircularProgress />
