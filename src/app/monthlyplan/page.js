@@ -23,10 +23,41 @@ export default function UpdateMonthlyPage() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [isNew, setIsNew] = useState(false); // toggle for POST (create) vs PUT (update)
+  const [isNew, setIsNew] = useState(false);
+  const [searching, setSearching] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  // 📌 Fetch existing record by vehicle
+  const handleSearch = async () => {
+    if (!form.vehicle.trim()) {
+      alert("Enter vehicle number to search");
+      return;
+    }
+    setSearching(true);
+    try {
+      const res = await axios.get("/api/monthlyclient", {
+        params: { email: session?.user?.email, vehicle: form.vehicle },
+      });
+
+      if (res.data.success) {
+        setForm({
+          vehicle: res.data.data.vehicle,
+          phone: res.data.data.phone,
+          planExpire: res.data.data.planExpire.split("T")[0], // trim ISO date
+        });
+        alert("Record found ✅");
+      } else {
+        alert(res.data.error || "No record found ❌");
+      }
+    } catch (error) {
+      console.error("Error fetching:", error);
+      alert(error.response?.data?.error || "Something went wrong ❌");
+    } finally {
+      setSearching(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -38,12 +69,11 @@ export default function UpdateMonthlyPage() {
     setLoading(true);
 
     try {
-      // ✅ Always use session email
       const endpoint = "/api/monthlyclient";
       const method = isNew ? "post" : "put";
 
       const res = await axios[method](endpoint, {
-        email: session?.user?.email, // email always from session
+        email: session?.user?.email,
         vehicle: form.vehicle,
         phone: form.phone,
         planExpire: form.planExpire,
@@ -57,7 +87,7 @@ export default function UpdateMonthlyPage() {
       }
     } catch (error) {
       console.error("Error:", error);
-      alert(error.response?.data?.error || "Something went wrong");
+      alert(error.response?.data?.error || "Something went wrong ❌");
     } finally {
       setLoading(false);
     }
@@ -74,12 +104,7 @@ export default function UpdateMonthlyPage() {
   return (
     <Container maxWidth="sm" sx={{ py: 6 }}>
       <Box
-        sx={{
-          p: 4,
-          borderRadius: 3,
-          boxShadow: 3,
-          backgroundColor: "white",
-        }}
+        sx={{ p: 4, borderRadius: 3, boxShadow: 3, backgroundColor: "white" }}
       >
         <Typography
           variant="h4"
@@ -100,6 +125,21 @@ export default function UpdateMonthlyPage() {
           margin="normal"
           required
         />
+
+        {/* Search button (only when updating) */}
+        {!isNew && (
+          <Button
+            fullWidth
+            variant="outlined"
+            color="secondary"
+            onClick={handleSearch}
+            disabled={searching}
+            sx={{ mt: 1, mb: 2 }}
+          >
+            {searching ? <CircularProgress size={20} /> : "Search Record"}
+          </Button>
+        )}
+
         <TextField
           fullWidth
           label="Phone Number"
@@ -138,7 +178,7 @@ export default function UpdateMonthlyPage() {
           )}
         </Button>
 
-        {/* Toggle between Create and Update */}
+        {/* Toggle Create/Update */}
         <Button
           fullWidth
           variant="text"

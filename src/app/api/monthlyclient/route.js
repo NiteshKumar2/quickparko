@@ -108,3 +108,48 @@ export async function PUT(request) {
     );
   }
 }
+
+// 📌 Get Monthly Record by email + vehicle
+export async function GET(request) {
+  try {
+    await connect();
+
+    const { searchParams } = new URL(request.url);
+    const email = searchParams.get("email");
+    const vehicle = searchParams.get("vehicle");
+
+    if (!email || !vehicle) {
+      return NextResponse.json(
+        { success: false, error: "Email and vehicle are required" },
+        { status: 400 }
+      );
+    }
+
+    const record = await Monthly.findOne({ email, vehicle });
+
+    if (!record) {
+      return NextResponse.json(
+        { success: false, error: "Monthly record not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          vehicle: record.vehicle,
+          phone: record.phone,
+          planExpire: record.planExpire,
+        },
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error fetching Monthly record:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
