@@ -201,15 +201,28 @@ export default function ParkingMain() {
       }
     }
   };
-
-  // OCR
+  // OCR with preprocessing
   const captureAndReadText = async () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
+
+    // Capture frame
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // ✅ Preprocess: convert to grayscale & increase contrast
+    let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      // grayscale
+      let avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      // threshold (black & white)
+      let value = avg > 128 ? 255 : 0;
+      data[i] = data[i + 1] = data[i + 2] = value;
+    }
+    ctx.putImageData(imageData, 0, 0);
 
     try {
       const {
@@ -217,15 +230,26 @@ export default function ParkingMain() {
       } = await Tesseract.recognize(canvas, "eng", {
         tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
       });
+
+      // ✅ Post-process OCR result
       let plate = text.replace(/[^A-Z0-9]/gi, "").toUpperCase();
-      if (plate.length >= 6) {
+
+      // Optional: match Indian-style plate format (e.g. KA01AB1234)
+      const platePattern = /^[A-Z]{2}[0-9]{1,2}[A-Z]{1,2}[0-9]{3,4}$/;
+      if (platePattern.test(plate)) {
+        setVehicleNo(plate);
+        setCameraOpen(false);
+        setFormOpen(true);
+      } else if (plate.length >= 6) {
+        // fallback if not perfect format
         setVehicleNo(plate);
         setCameraOpen(false);
         setFormOpen(true);
       } else {
-        toast.error("Plate not clear ❌");
+        toast.error("Plate not clear ❌ Try again");
       }
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast.error("OCR failed ❌");
     }
   };
