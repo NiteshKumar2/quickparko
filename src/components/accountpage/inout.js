@@ -63,14 +63,18 @@ export default function ParkingMain() {
 
   // Switch toggle
   const handleSwitchChange = (e) => {
-    if (availableModes.includes("daily") && availableModes.includes("monthly")) {
+    if (
+      availableModes.includes("daily") &&
+      availableModes.includes("monthly")
+    ) {
       setMode(e.target.checked ? "Monthly" : "Daily");
     }
   };
 
   // Open handlers
   const handleOpenIn = async () => {
-    setTokenNo(`TKN-${Math.floor(Math.random() * 10000)}`);
+    const prefix = userEmail ? userEmail.slice(0, 3).toUpperCase() : "TKN";
+    setTokenNo(`${prefix}-${Math.floor(100 + Math.random() * 90)}`);
     setVehicleNo("");
     setOpenPopup("in");
     await startCamera();
@@ -188,7 +192,9 @@ export default function ParkingMain() {
       videoRef.current.srcObject = stream;
     } catch {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
         videoRef.current.srcObject = stream;
       } catch {
         toast.error("Unable to access camera ❌");
@@ -206,7 +212,9 @@ export default function ParkingMain() {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     try {
-      const { data: { text } } = await Tesseract.recognize(canvas, "eng", {
+      const {
+        data: { text },
+      } = await Tesseract.recognize(canvas, "eng", {
         tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
       });
       let plate = text.replace(/[^A-Z0-9]/gi, "").toUpperCase();
@@ -291,25 +299,42 @@ export default function ParkingMain() {
 
       {/* ✅ Single Camera Popup */}
       <Dialog
-        open={(["in", "inm", "outm"].includes(openPopup)) && cameraOpen}
+        open={["in", "inm", "outm"].includes(openPopup) && cameraOpen}
         onClose={handleClose}
-        fullWidth maxWidth="sm"
+        fullWidth
+        maxWidth="sm"
       >
         <DialogTitle>
           Scan Vehicle Number ({mode})
-          <IconButton onClick={handleClose} sx={{ position: "absolute", right: 8, top: 8 }}>
+          <IconButton
+            onClick={handleClose}
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
             <CloseIcon />
           </IconButton>
         </DialogTitle>
         <DialogContent dividers>
           <Box sx={{ textAlign: "center" }}>
-            <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%" }} />
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{ width: "100%" }}
+            />
             <canvas ref={canvasRef} style={{ display: "none" }} />
             <Stack spacing={2} mt={2}>
               <Button variant="contained" onClick={captureAndReadText}>
                 Capture & Read Text
               </Button>
-              <Button variant="outlined" startIcon={<CameraAltIcon />} onClick={() => { setCameraOpen(false); setFormOpen(true); }}>
+              <Button
+                variant="outlined"
+                startIcon={<CameraAltIcon />}
+                onClick={() => {
+                  setCameraOpen(false);
+                  setFormOpen(true);
+                }}
+              >
                 Enter Manually
               </Button>
             </Stack>
@@ -321,7 +346,10 @@ export default function ParkingMain() {
       <Dialog open={formOpen} onClose={handleClose} fullWidth maxWidth="sm">
         <DialogTitle>
           Confirm Vehicle Details
-          <IconButton onClick={handleClose} sx={{ position: "absolute", right: 8, top: 8 }}>
+          <IconButton
+            onClick={handleClose}
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -341,7 +369,11 @@ export default function ParkingMain() {
                 fullWidth
               />
             )}
-            <Button variant="contained" onClick={handleSubmit} disabled={loading}>
+            <Button
+              variant="contained"
+              onClick={handleSubmit}
+              disabled={loading}
+            >
               {loading ? <CircularProgress size={24} /> : "Submit"}
             </Button>
           </Stack>
@@ -349,10 +381,18 @@ export default function ParkingMain() {
       </Dialog>
 
       {/* ✅ OUT Search Popup */}
-      <Dialog open={openPopup === "out"} onClose={handleClose} fullWidth maxWidth="sm">
+      <Dialog
+        open={openPopup === "out"}
+        onClose={handleClose}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>
           Vehicle OUT ({mode})
-          <IconButton onClick={handleClose} sx={{ position: "absolute", right: 8, top: 8 }}>
+          <IconButton
+            onClick={handleClose}
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -364,18 +404,43 @@ export default function ParkingMain() {
               onChange={(e) => setVehicleNo(e.target.value)}
               fullWidth
             />
-            <Button variant="contained" onClick={handleSubmit} disabled={loading} sx={{ bgcolor: "#c62828" }}>
+            <Button
+              variant="contained"
+              onClick={handleSubmit}
+              disabled={loading}
+              sx={{ bgcolor: "#c62828" }}
+            >
               {loading ? <CircularProgress size={24} /> : "Search"}
             </Button>
             {searchResults.map((r) => (
-              <Box key={r._id} sx={{ p: 2, border: "1px solid #ccc", borderRadius: 2 }}>
-                <Typography><b>Vehicle:</b> {r.vehicle}</Typography>
-                <Typography><b>Token:</b> {r.token}</Typography>
-                <Typography><b>Status:</b> {r.status}</Typography>
-                <Typography><b>In Time:</b> {new Date(r.createdAt).toLocaleString()}</Typography>
-                {r.status === "out" && <Typography><b>Out Time:</b> {new Date(r.updatedAt).toLocaleString()}</Typography>}
+              <Box
+                key={r._id}
+                sx={{ p: 2, border: "1px solid #ccc", borderRadius: 2 }}
+              >
+                <Typography>
+                  <b>Vehicle:</b> {r.vehicle}
+                </Typography>
+                <Typography>
+                  <b>Token:</b> {r.token}
+                </Typography>
+                <Typography>
+                  <b>Status:</b> {r.status}
+                </Typography>
+                <Typography>
+                  <b>In Time:</b> {new Date(r.createdAt).toLocaleString()}
+                </Typography>
+                {r.status === "out" && (
+                  <Typography>
+                    <b>Out Time:</b> {new Date(r.updatedAt).toLocaleString()}
+                  </Typography>
+                )}
                 {r.status === "in" && (
-                  <Button variant="contained" sx={{ mt: 1, bgcolor: "#c62828" }} onClick={() => handleExitVehicle(r._id)} disabled={loading}>
+                  <Button
+                    variant="contained"
+                    sx={{ mt: 1, bgcolor: "#c62828" }}
+                    onClick={() => handleExitVehicle(r._id)}
+                    disabled={loading}
+                  >
                     {loading ? <CircularProgress size={20} /> : "Exit Vehicle"}
                   </Button>
                 )}
