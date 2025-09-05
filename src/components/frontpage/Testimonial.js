@@ -1,11 +1,10 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import dynamic from "next/dynamic";
 import { Card, CardContent, Typography, Avatar, Box } from "@mui/material";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
-// ✅ Load Slider only on client to avoid Next.js SSR issues
 const Slider = dynamic(() => import("react-slick"), { ssr: false });
 
 const testimonials = [
@@ -39,32 +38,22 @@ const testimonials = [
 
 export default function Testimonials() {
   const settings = {
-  dots: true,
-  infinite: true,
-  speed: 600,
-  slidesToShow: 3,
-  slidesToScroll: 1,
-  arrows: true,
-  responsive: [
-    {
-      breakpoint: 1280, // small laptops / tablets
-      settings: { slidesToShow: 2 },
-    },
-    {
-      breakpoint: 1024, // iPad Pro / medium tablets
-      settings: { slidesToShow: 1 },
-    },
-    {
-      breakpoint: 768, // tablets & phones
-      settings: { slidesToShow: 1 },
-    },
-    {
-      breakpoint: 480, // ✅ force ALL phones (including iPhone 13)
-      settings: { slidesToShow: 1 },
-    },
-  ],
-};
+    dots: true,
+    infinite: true,
+    speed: 600,
+    slidesToShow: 3,
+    slidesToScroll: 1,
+    arrows: true,
+    responsive: [
+      { breakpoint: 1280, settings: { slidesToShow: 2 } },
+      { breakpoint: 1024, settings: { slidesToShow: 1 } }, // ✅ iPhone 13 & all phones
+    ],
+  };
 
+  // Debug (optional)
+  useEffect(() => {
+    console.log("Screen width:", window.innerWidth);
+  }, []);
 
   return (
     <Box
