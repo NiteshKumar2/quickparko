@@ -18,19 +18,31 @@ export async function GET(request) {
       );
     }
 
-    // Calculate the range
+    // Calculate date range
     const now = new Date();
     const futureDate = new Date();
     futureDate.setDate(now.getDate() + days);
 
-    // Find records where planExpire is within next X days
-    const results = await Monthly.find({
+    // ✅ Find expired plans
+    const expired = await Monthly.find({
+      email,
+      planExpire: { $lt: now },
+    }).lean();
+
+    // ✅ Find upcoming expiring plans
+    const upcoming = await Monthly.find({
       email,
       planExpire: { $gte: now, $lte: futureDate },
     }).lean();
 
     return NextResponse.json(
-      { success: true, count: results.length, data: results },
+      {
+        success: true,
+        expiredCount: expired.length,
+        upcomingCount: upcoming.length,
+        expired,
+        upcoming,
+      },
       { status: 200 }
     );
   } catch (error) {

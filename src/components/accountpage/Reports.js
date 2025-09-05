@@ -16,11 +16,11 @@ import axios from "axios";
 import toast from "react-hot-toast";
 
 // ✅ Reusable card for displaying results
-const ResultCard = ({ title, data }) => (
+const ResultCard = ({ data }) => (
   <Box sx={{ p: 2, border: "1px solid #ccc", borderRadius: 2 }}>
     {Object.entries(data).map(([key, value]) => (
       <Typography key={key}>
-        <b>{title ? title[key] || key : key}:</b>{" "}
+        <b>{key}:</b>{" "}
         {value instanceof Date ? value.toLocaleString() : value}
       </Typography>
     ))}
@@ -37,7 +37,8 @@ export default function Reports() {
 
   const [dailyResults, setDailyResults] = useState([]);
   const [todayEntries, setTodayEntries] = useState(null);
-  const [monthlyResults, setMonthlyResults] = useState([]);
+  const [monthlyExpired, setMonthlyExpired] = useState([]);
+  const [monthlyUpcoming, setMonthlyUpcoming] = useState([]);
   const [activeClients, setActiveClients] = useState(null);
 
   const [loadingDaily, setLoadingDaily] = useState(false);
@@ -101,7 +102,7 @@ export default function Reports() {
     }
   };
 
-  // ✅ Fetch monthly expiry
+  // ✅ Fetch monthly expiry (Expired + Upcoming)
   const fetchMonthlyExpiry = async () => {
     if (!userEmail?.trim() || !day)
       return toast.error("Please enter valid days");
@@ -112,11 +113,15 @@ export default function Reports() {
           userEmail
         )}&day=${day}`
       );
-      if (res.data?.success && Array.isArray(res.data.data)) {
-        setMonthlyResults(res.data.data);
-        toast.success(`${res.data.data.length} record(s) found ✅`);
+      if (res.data?.success) {
+        setMonthlyExpired(res.data.expired || []);
+        setMonthlyUpcoming(res.data.upcoming || []);
+        toast.success(
+          `Expired: ${res.data.expiredCount}, Upcoming: ${res.data.upcomingCount}`
+        );
       } else {
-        setMonthlyResults([]);
+        setMonthlyExpired([]);
+        setMonthlyUpcoming([]);
         toast.error(res.data?.message || "No records found ❌");
       }
     } catch (err) {
@@ -125,6 +130,18 @@ export default function Reports() {
     } finally {
       setLoadingMonthly(false);
     }
+  };
+
+  // ✅ Helper: extract last in/out timing
+  const getLastTiming = (timingArr) => {
+    if (!timingArr?.length) return {};
+    const last = timingArr[timingArr.length - 1];
+    return {
+      "Last In": last.inTime ? new Date(last.inTime).toLocaleString() : "N/A",
+      "Last Out": last.outTime
+        ? new Date(last.outTime).toLocaleString()
+        : "N/A",
+    };
   };
 
   return (
@@ -209,24 +226,48 @@ export default function Reports() {
           </Button>
         </Stack>
 
-        {/* Results */}
-        {monthlyResults.length > 0 ? (
+        {/* Expired Results */}
+        <Typography variant="h6" mt={2} color="error">
+          Expired Plans ({monthlyExpired.length})
+        </Typography>
+        {monthlyExpired.length > 0 ? (
           <Stack spacing={2} mt={2}>
-            {monthlyResults.map((item) => (
+            {monthlyExpired.map((item) => (
               <ResultCard
                 key={item._id}
                 data={{
                   Vehicle: item.vehicle,
                   Phone: item.phone,
-                  "Plan Expire": new Date(item.planExpire).toLocaleDateString(),
+                  "Plan Expired On": new Date(item.planExpire).toLocaleDateString(),
+                  ...getLastTiming(item.timing),
                 }}
               />
             ))}
           </Stack>
         ) : (
-          <Typography color="text.secondary" mt={2}>
-            No subscription records found
-          </Typography>
+          <Typography color="text.secondary">No expired records</Typography>
+        )}
+
+        {/* Upcoming Results */}
+        <Typography variant="h6" mt={4} color="primary">
+          Upcoming Expiring Plans ({monthlyUpcoming.length})
+        </Typography>
+        {monthlyUpcoming.length > 0 ? (
+          <Stack spacing={2} mt={2}>
+            {monthlyUpcoming.map((item) => (
+              <ResultCard
+                key={item._id}
+                data={{
+                  Vehicle: item.vehicle,
+                  Phone: item.phone,
+                  "Plan Expire On": new Date(item.planExpire).toLocaleDateString(),
+                  ...getLastTiming(item.timing),
+                }}
+              />
+            ))}
+          </Stack>
+        ) : (
+          <Typography color="text.secondary">No upcoming records</Typography>
         )}
 
         <Divider sx={{ my: 3 }} />
