@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React from "react";
 import dynamic from "next/dynamic";
 import { Card, CardContent, Typography, Avatar, Box } from "@mui/material";
 import "slick-carousel/slick/slick.css";
@@ -41,19 +41,20 @@ export default function Testimonials() {
     dots: true,
     infinite: true,
     speed: 600,
-    slidesToShow: 3,
+    slidesToShow: 1, // ✅ default = mobile
     slidesToScroll: 1,
-    arrows: true,
+    arrows: false, // hide on mobile
     responsive: [
-      { breakpoint: 1280, settings: { slidesToShow: 2 } },
-      { breakpoint: 1024, settings: { slidesToShow: 1 } }, // ✅ iPhone 13 & all phones
+      {
+        breakpoint: 900, // tablets
+        settings: { slidesToShow: 2, arrows: false },
+      },
+      {
+        breakpoint: 1280, // laptops & desktops
+        settings: { slidesToShow: 3, arrows: true }, // ✅ show arrows on laptop
+      },
     ],
   };
-
-  // Debug (optional)
-  useEffect(() => {
-    console.log("Screen width:", window.innerWidth);
-  }, []);
 
   return (
     <Box
