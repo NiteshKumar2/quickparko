@@ -39,23 +39,32 @@ const testimonials = [
 
 export default function Testimonials() {
   const settings = {
-    dots: true,
-    infinite: true,
-    speed: 600,
-    slidesToShow: 3,
-    slidesToScroll: 1,
-    arrows: true,
-    responsive: [
-      {
-        breakpoint: 1280, // Tablet / small laptops
-        settings: { slidesToShow: 2 },
-      },
-      {
-        breakpoint: 768, // ✅ All mobiles (iPhones, Android)
-        settings: { slidesToShow: 1 },
-      },
-    ],
-  };
+  dots: true,
+  infinite: true,
+  speed: 600,
+  slidesToShow: 3,
+  slidesToScroll: 1,
+  arrows: true,
+  responsive: [
+    {
+      breakpoint: 1280, // small laptops / tablets
+      settings: { slidesToShow: 2 },
+    },
+    {
+      breakpoint: 1024, // iPad Pro / medium tablets
+      settings: { slidesToShow: 1 },
+    },
+    {
+      breakpoint: 768, // tablets & phones
+      settings: { slidesToShow: 1 },
+    },
+    {
+      breakpoint: 480, // ✅ force ALL phones (including iPhone 13)
+      settings: { slidesToShow: 1 },
+    },
+  ],
+};
+
 
   return (
     <Box

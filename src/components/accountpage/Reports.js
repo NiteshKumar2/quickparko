@@ -16,7 +16,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 
 // ✅ Reusable card for displaying results
-const ResultCard = ({ data }) => (
+const ResultCard = ({ data, onNotify }) => (
   <Box sx={{ p: 2, border: "1px solid #ccc", borderRadius: 2 }}>
     {Object.entries(data).map(([key, value]) => (
       <Typography key={key}>
@@ -24,6 +24,17 @@ const ResultCard = ({ data }) => (
         {value instanceof Date ? value.toLocaleString() : value}
       </Typography>
     ))}
+    {onNotify && (
+      <Button
+        sx={{ mt: 1 }}
+        variant="contained"
+        color="success"
+        fullWidth
+        onClick={onNotify}
+      >
+        Send Notification
+      </Button>
+    )}
   </Box>
 );
 
@@ -144,6 +155,19 @@ export default function Reports() {
     };
   };
 
+  // ✅ Helper: open WhatsApp link
+  const sendWhatsApp = (phone, vehicle, expireDate, expired = false) => {
+    const phoneNumber = phone.startsWith("+91") ? phone : `+91${phone}`;
+    const message = expired
+      ? `Hello, your subscription plan for vehicle ${vehicle} expired on ${expireDate}. Please renew to continue services.`
+      : `Hello, your subscription plan for vehicle ${vehicle} will expire on ${expireDate}. Please renew soon to avoid interruption.`;
+
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
+      message
+    )}`;
+    window.open(url, "_blank");
+  };
+
   return (
     <Container maxWidth="md" sx={{ py: 6 }}>
       {/* DAILY SECTION */}
@@ -238,9 +262,19 @@ export default function Reports() {
                 data={{
                   Vehicle: item.vehicle,
                   Phone: item.phone,
-                  "Plan Expired On": new Date(item.planExpire).toLocaleDateString(),
+                  "Plan Expired On": new Date(
+                    item.planExpire
+                  ).toLocaleDateString(),
                   ...getLastTiming(item.timing),
                 }}
+                onNotify={() =>
+                  sendWhatsApp(
+                    item.phone,
+                    item.vehicle,
+                    new Date(item.planExpire).toLocaleDateString(),
+                    true
+                  )
+                }
               />
             ))}
           </Stack>
@@ -260,9 +294,19 @@ export default function Reports() {
                 data={{
                   Vehicle: item.vehicle,
                   Phone: item.phone,
-                  "Plan Expire On": new Date(item.planExpire).toLocaleDateString(),
+                  "Plan Expire On": new Date(
+                    item.planExpire
+                  ).toLocaleDateString(),
                   ...getLastTiming(item.timing),
                 }}
+                onNotify={() =>
+                  sendWhatsApp(
+                    item.phone,
+                    item.vehicle,
+                    new Date(item.planExpire).toLocaleDateString(),
+                    false
+                  )
+                }
               />
             ))}
           </Stack>
