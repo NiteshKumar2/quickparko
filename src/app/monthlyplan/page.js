@@ -23,7 +23,7 @@ export default function UpdateMonthlyPage() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [isNew, setIsNew] = useState(false);
+  const [isNew, setIsNew] = useState(true);
   const [searching, setSearching] = useState(false);
 
   const handleChange = (e) => {

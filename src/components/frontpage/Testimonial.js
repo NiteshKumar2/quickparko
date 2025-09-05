@@ -46,8 +46,14 @@ export default function Testimonials() {
     slidesToScroll: 1,
     arrows: true,
     responsive: [
-      { breakpoint: 1280, settings: { slidesToShow: 2 } }, // Tablets
-      { breakpoint: 900, settings: { slidesToShow: 1 } }, // Mobile (iPhones, small screens)
+      {
+        breakpoint: 1280, // Tablet / small laptops
+        settings: { slidesToShow: 2 },
+      },
+      {
+        breakpoint: 768, // ✅ All mobiles (iPhones, Android)
+        settings: { slidesToShow: 1 },
+      },
     ],
   };
 
